@@ -18,6 +18,7 @@ print("Imported libraries")
 
 
 # This code consults data in the table 'women_in_government' within the postgreSQL database through the REST API
+# pre-requisite file: 'nimblegravity.conf'
 
 # Function to check if PostgREST server is running
 def is_server_running():
