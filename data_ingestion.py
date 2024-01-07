@@ -161,7 +161,7 @@ cur.execute('''
         SELECT TO_DATE(CONCAT(a.year, '-', RIGHT(a.month,2), '-01'), 'YYYY-MM-DD') AS date,
                CASE
                    WHEN CAST(a.value_in_thousands AS NUMERIC) - CAST(p.value_in_thousands AS NUMERIC) = 0 THEN NULL
-                   ELSE ROUND(CAST(p.value_in_thousands AS NUMERIC) / (CAST(a.value_in_thousands AS NUMERIC) - CAST(p.value_in_thousands AS NUMERIC)), 2)
+                   ELSE ROUND(CAST(p.value_in_thousands AS NUMERIC) / (CAST(a.value_in_thousands AS NUMERIC) - CAST(p.value_in_thousands AS NUMERIC)), 3)
                END AS ratio
         FROM all_employees_private_temp a
         INNER JOIN production_employees_private_temp p 
