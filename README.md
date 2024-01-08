@@ -5,7 +5,7 @@ Data challenge for the Data Scientist position at Nimble Gravity
 
 PostgreSQL Database has already been created.
 
-Credentials to the database can be found in data_ingestion.py.
+Credentials to the database can be found in 'data_ingestion.py'.
 
 ##########
 FIRST SCRIPT TO RUN: 'data_ingestion.py'
@@ -13,13 +13,13 @@ FIRST SCRIPT TO RUN: 'data_ingestion.py'
 The script has three .csv as dependencies which have been downloaded from:
 https://www.bls.gov/data/#employment
 
-women_in_government.csv
+'women_in_government.csv'
 Contains monthly time series from 1964 through 2023 of thousands of women employees in the government. The data is seasonalized. The serie id is CES9000000010.
 
-all_employees_private,csv
+'all_employees_private.csv'
 Contains monthly time series from 1939 through 2023 of thousands of employees in the private sector. The data is seasonalized. The serie id is CES0500000001.
 
-all_employees_private,csv
+'all_employees_private.csv'
 Contains time series from 1964 through 2023 of thousands of production employees in the private sector. The data is seasonalized. The serie id is CES0500000006.
 
 data_ingestion.py will:
@@ -42,4 +42,4 @@ SECOND AND THIRD SCRIPTS TO RUN: 'api_women_in_government.py' & 'api_production_
 
 The contents of each of the tables can be exposed in JSON format through REST API by running these two scripts.
 
-Api scripts has one file dependency nimblegravity.conf that is required to run the PostgREST server.
+API scripts has one file dependency 'nimblegravity.conf' that is required to run the PostgREST server.
