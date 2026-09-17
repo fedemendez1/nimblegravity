@@ -183,7 +183,7 @@ s.addText('THE CALIBRATION MECHANIC  ·  MULTIPLY THE PLATFORM NUMBER BY k',
 s.addTable([
  [{text:'Vendor',options:{bold:true}},{text:'k  Jan–Oct',options:{bold:true,align:'center'}},
   {text:'k  Nov–Dec',options:{bold:true,align:'center'}},
-  {text:'In-platform CPA target\nto hit a £18 true CPA',options:{bold:true,align:'center'}}],
+  {text:'In-platform CPA target\nto hit an £18 true CPA',options:{bold:true,align:'center'}}],
  ['Google UAC',{text:'0.78',options:{align:'center'}},{text:'0.55',options:{align:'center',bold:true,color:ORANGE}},
   {text:'£14.09  →  £9.90',options:{align:'center'}}],
  ['Tradedesk',{text:'0.86',options:{align:'center'}},{text:'0.73',options:{align:'center',bold:true,color:ORANGE}},
