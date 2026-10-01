@@ -92,11 +92,15 @@ def media_results(a):
     out = pd.DataFrame({
         "spend_k": s.spend.to_series() / 1e3,
         "roi_prior_median": roi[("prior", "median")],
+        "roi_prior_lo": roi[("prior", "ci_lo")],
+        "roi_prior_hi": roi[("prior", "ci_hi")],
         "roi_post_median": roi[("posterior", "median")],
         "roi_post_lo": roi[("posterior", "ci_lo")],
         "roi_post_hi": roi[("posterior", "ci_hi")],
         "mroi_post_median": s.mroi.sel(distribution="posterior", metric="median").to_series(),
     })
+    draws = np.asarray(a.roi(use_kpi=False)).reshape(-1, len(s.channel) - 1)
+    out["p_roi_above_1"] = pd.Series((draws > 1).mean(0), index=s.channel.values[:-1])
     # how much the data narrowed the ROI interval vs the prior (1 = learned nothing)
     out["ci_width_post_vs_prior"] = ((roi[("posterior", "ci_hi")] - roi[("posterior", "ci_lo")])
                                      / (roi[("prior", "ci_hi")] - roi[("prior", "ci_lo")]))
