@@ -1,3 +1,4 @@
 .venv/
 __pycache__/
 *.pkl
+fmcg_mmm/outputs/fit_log.txt
