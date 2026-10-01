@@ -1,0 +1,3 @@
+tag,r2,mape,acf_lag1,holdout_mape,roi_tv,roi_lo_tv,roi_hi_tv,roi_digital_video,roi_lo_digital_video,roi_hi_digital_video,roi_social,roi_lo_social,roi_hi_social,roi_partnership,roi_lo_partnership,roi_hi_partnership,roi_ooh,roi_lo_ooh,roi_hi_ooh,roi_search_rdm,roi_lo_search_rdm,roi_hi_search_rdm,roi_All Channels,roi_lo_All Channels,roi_hi_All Channels,price_elasticity
+k1,0.904,0.049,0.338,0.055,0.946,0.318,2.148,0.962,0.348,2.398,0.825,0.303,2.084,1.707,0.465,4.295,1.707,0.42,5.875,1.046,0.332,3.208,1.283,0.795,1.942,-0.5
+f1,0.914,0.044,0.348,0.04,0.737,0.275,1.601,1.012,0.335,2.657,1.06,0.35,2.86,0.943,0.325,2.267,1.344,0.388,4.172,1.015,0.32,3.196,1.146,0.698,1.855,-0.484

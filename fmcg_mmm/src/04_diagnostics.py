@@ -1,8 +1,8 @@
 """Model checks (convergence, fit, residuals, signs, prior vs posterior) and headline results.
 
 Usage:
-    python 04_diagnostics.py                 # uses outputs/mmm_full.pkl (+ mmm_holdout13.pkl if present)
-    python 04_diagnostics.py --model mmm_quick
+    python 04_diagnostics.py                  # outputs/mmm_base.pkl (+ mmm_base_ho13.pkl if present)
+    python 04_diagnostics.py --model mmm_k6
 """
 import argparse
 import os
@@ -21,9 +21,12 @@ from meridian.model import model
 
 from style import CHANNEL_COLORS, GRID, INK_2, ROOT, SERIES, TAB, save
 
-EXPECTED_SIGN = {"temp_avg": 1, "heat_excess": 1, "distribution": 1, "rel_base_price": -1,
-                 "promo_distribution": 1, "comp_media_spend": -1,
-                 "rainfall": -1, "new_year_week": -1}
+EXPECTED_SIGN = {"temp_avg": 1, "heat_excess": 1, "distribution": 1, "log_rel_price": -1,
+                 "promo_intensity": 1, "comp_media_spend": -1, "rainfall": -1, "new_year_week": -1}
+
+
+def load(name):
+    return model.load_mmm(str(ROOT / f"outputs/{name}.pkl"))
 
 
 def convergence(mmm):
@@ -45,11 +48,19 @@ def fit_quality(a, label):
     return acc
 
 
-def fitted_vs_actual(a, times):
+def residual_acf(resid):
+    r = resid - resid.mean()
+    return {f"lag{k}": float(np.sum(r[k:] * r[:-k]) / np.sum(r * r)) for k in (1, 2, 4, 52)}
+
+
+def fitted(a):
     e = a.expected_vs_actual_data(use_kpi=True).sel(geo="national_geo")
-    exp = e.expected.sel(metric="mean").values
+    return e.expected.sel(metric="mean").values, e.actual.values, e
+
+
+def fitted_vs_actual(a, times):
+    exp, act, e = fitted(a)
     lo, hi = e.expected.sel(metric="ci_lo").values, e.expected.sel(metric="ci_hi").values
-    act = e.actual.values
     resid = act - exp
 
     fig, (a1, a2) = plt.subplots(2, 1, figsize=(10, 5.5), sharex=True, height_ratios=[2, 1])
@@ -64,8 +75,7 @@ def fitted_vs_actual(a, times):
     a2.xaxis.set_major_formatter(mdates.DateFormatter("%b %y"))
     save(fig, "diag_01_fit_residuals")
 
-    r = resid - resid.mean()
-    acf = {f"lag{k}": float(np.sum(r[k:] * r[:-k]) / np.sum(r * r)) for k in (1, 2, 4, 52)}
+    acf = residual_acf(resid)
     print("residual ACF:", {k: round(v, 2) for k, v in acf.items()})
     return acf
 
@@ -86,7 +96,7 @@ def coefficient_signs(mmm):
     return out
 
 
-def media_results(a):
+def roi_table(a):
     s = a.summary_metrics(use_kpi=False)
     roi = s.roi.to_dataframe().roi.unstack(["distribution", "metric"])
     out = pd.DataFrame({
@@ -104,6 +114,11 @@ def media_results(a):
     # how much the data narrowed the ROI interval vs the prior (1 = learned nothing)
     out["ci_width_post_vs_prior"] = ((roi[("posterior", "ci_hi")] - roi[("posterior", "ci_lo")])
                                      / (roi[("prior", "ci_hi")] - roi[("prior", "ci_lo")]))
+    return out, roi
+
+
+def media_results(a):
+    out, roi = roi_table(a)
     out.round(3).to_csv(TAB / "results_media_roi.csv")
     print(out.round(2).to_string())
 
@@ -121,6 +136,51 @@ def media_results(a):
     ax.set(title="Media ROI: prior vs posterior (£ revenue per £ spent)", xlabel="ROI")
     ax.legend(loc="lower right")
     save(fig, "results_01_roi_prior_posterior")
+    return out
+
+
+def price_promo_effects(mmm):
+    """Coefficients are on standardised scales: dVolume/dx = gamma * sd(volume) / sd(x)."""
+    df = pd.read_csv(ROOT / "data/clean/model_data.csv")
+    g = mmm.inference_data.posterior.gamma_n
+    vol_sd, vol_mean = df.volume_kg.std(ddof=0), df.volume_kg.mean()
+    effects = {
+        # % volume change per 1% increase in price premium vs competitors
+        "price_elasticity": g.sel(non_media_channel="log_rel_price").values.ravel()
+        * vol_sd / df.log_rel_price.std(ddof=0) / vol_mean,
+        # % volume change per +10pp of promo intensity (discount x share of stores on promo)
+        "promo_uplift_per_10pp": g.sel(non_media_channel="promo_intensity").values.ravel()
+        * vol_sd / df.promo_intensity.std(ddof=0) * 0.10 / vol_mean * 100,
+    }
+    out = pd.DataFrame({k: {"median": np.median(v), "q05": np.quantile(v, 0.05), "q95": np.quantile(v, 0.95)}
+                        for k, v in effects.items()}).T
+    out.round(3).to_csv(TAB / "results_price_promo.csv")
+    print(out.round(3).to_string())
+    return out
+
+
+def response_curves(a, n_weeks):
+    """Incremental revenue vs spend, scaling each channel's historical flighting. Annualised."""
+    mult = np.round(np.arange(0, 3.01, 0.1), 2)
+    rc = a.response_curves(spend_multipliers=list(mult))
+    years = n_weeks / 52
+    out = (rc.incremental_outcome.to_dataframe().incremental_outcome.unstack("metric")
+           .join(rc.spend.to_dataframe()).reset_index())
+    out[["spend", "mean", "ci_lo", "ci_hi"]] /= years
+    out.round(1).to_csv(TAB / "results_response_curves.csv", index=False)
+
+    chans = list(rc.channel.values)
+    fig, axes = plt.subplots(2, 3, figsize=(11, 6))
+    for ax, ch in zip(axes.ravel(), chans):
+        d = out[out.channel == ch]
+        cur = d[d.spend_multiplier == 1].iloc[0]
+        ax.fill_between(d.spend / 1e3, d.ci_lo / 1e3, d.ci_hi / 1e3, color=CHANNEL_COLORS[ch], alpha=0.2, lw=0)
+        ax.plot(d.spend / 1e3, d["mean"] / 1e3, color=CHANNEL_COLORS[ch])
+        ax.plot(d.spend / 1e3, d.spend / 1e3, color=INK_2, lw=0.8, ls="--")
+        ax.scatter(cur.spend / 1e3, cur["mean"] / 1e3, color=CHANNEL_COLORS[ch], edgecolor="white", s=50, zorder=3)
+        ax.set(title=ch, xlabel="annual spend £k", ylabel="incr. revenue £k")
+    fig.suptitle("Response curves (annualised): dot = current spend, dashed = break-even", x=0.01, ha="left")
+    save(fig, "results_03_response_curves")
     return out
 
 
@@ -148,24 +208,25 @@ def contributions(a):
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("--model", default="mmm_full")
-    ap.add_argument("--holdout-model", default="mmm_holdout13")
+    ap.add_argument("--model", default="mmm_base")
     args = ap.parse_args()
 
-    mmm = model.load_mmm(str(ROOT / f"outputs/{args.model}.pkl"))
+    mmm = load(args.model)
     a = analyzer.Analyzer(mmm)
     times = pd.to_datetime(mmm.input_data.time.values)
 
     print("== convergence"); convergence(mmm)
     print("== fit")
     acc = [fit_quality(a, args.model)]
-    ho_path = ROOT / f"outputs/{args.holdout_model}.pkl"
-    if ho_path.exists():
-        acc.append(fit_quality(analyzer.Analyzer(model.load_mmm(str(ho_path))), args.holdout_model))
+    ho = f"{args.model}_ho13"
+    if (ROOT / f"outputs/{ho}.pkl").exists():
+        acc.append(fit_quality(analyzer.Analyzer(load(ho)), ho))
     acc = pd.concat(acc)
     acc.round(3).to_csv(TAB / "diag_fit.csv", index=False)
     print(acc.round(3).to_string(index=False))
     fitted_vs_actual(a, times)
     print("== coefficient signs"); coefficient_signs(mmm)
+    print("== price & promo"); price_promo_effects(mmm)
     print("== media ROI"); media_results(a)
     print("== contributions"); contributions(a)
+    print("== response curves"); response_curves(a, len(times))

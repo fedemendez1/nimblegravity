@@ -3,12 +3,14 @@ rainfall,-0.377
 promo_depth,-0.11
 spend_partnership,-0.092
 spend_search_rdm,-0.048
+spend_tv,-0.021
 promo_distribution,0.03
+promo_intensity,0.039
 spend_social,0.074
-rel_base_price,0.146
-base_price_per_kg,0.173
-spend_video,0.181
+log_rel_price,0.132
 spend_ooh,0.24
+spend_digital_video,0.295
 comp_media_spend,0.336
 distribution,0.39
 temp_avg,0.694
+heat_excess,0.788

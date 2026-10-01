@@ -7,7 +7,7 @@
   --bg: #f6f8f9; --panel: #ffffff; --fg: #10181d; --fg-2: #4b5961; --fg-3: #7b8a92;
   --line: #dde4e8; --track: #e6ecef; --accent: #1f6fb2;
   --ok: #1b7f4b; --ok-bg: #e3f3ea; --warn: #9a6200; --warn-bg: #fbf0d9; --bad: #b42d2d; --bad-bg: #fbe6e6;
-  --c-video: #2a78d6; --c-social: #eb6834; --c-partnership: #1baf7a; --c-ooh: #eda100; --c-search_rdm: #e87ba4;
+  --c-tv: #2a78d6; --c-digital_video: #eb6834; --c-social: #1baf7a; --c-partnership: #eda100; --c-ooh: #e87ba4; --c-search_rdm: #008300;
   --c-driver: #4a5d68; --c-neg: #e34948; --c-base: #b9c5cc;
   --f-display: "IBM Plex Sans Condensed", "Arial Narrow", sans-serif;
   --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -17,13 +17,13 @@
   --bg: #0f1518; --panel: #161e22; --fg: #eef3f5; --fg-2: #a9b7be; --fg-3: #7d8c94;
   --line: #27333a; --track: #222d33; --accent: #5aa2e6;
   --ok: #5fd08f; --ok-bg: #173325; --warn: #f0b64a; --warn-bg: #3a2c12; --bad: #f08080; --bad-bg: #3d1c1c;
-  --c-video: #3987e5; --c-social: #d95926; --c-partnership: #199e70; --c-ooh: #c98500; --c-search_rdm: #d55181;
+  --c-tv: #3987e5; --c-digital_video: #d95926; --c-social: #199e70; --c-partnership: #c98500; --c-ooh: #d55181; --c-search_rdm: #2e9a2e;
   --c-driver: #9fb1bb; --c-neg: #e66767; --c-base: #4c5b63; color-scheme: dark; } }
 :root[data-theme="dark"] {
   --bg: #0f1518; --panel: #161e22; --fg: #eef3f5; --fg-2: #a9b7be; --fg-3: #7d8c94;
   --line: #27333a; --track: #222d33; --accent: #5aa2e6;
   --ok: #5fd08f; --ok-bg: #173325; --warn: #f0b64a; --warn-bg: #3a2c12; --bad: #f08080; --bad-bg: #3d1c1c;
-  --c-video: #3987e5; --c-social: #d95926; --c-partnership: #199e70; --c-ooh: #c98500; --c-search_rdm: #d55181;
+  --c-tv: #3987e5; --c-digital_video: #d95926; --c-social: #199e70; --c-partnership: #c98500; --c-ooh: #d55181; --c-search_rdm: #2e9a2e;
   --c-driver: #9fb1bb; --c-neg: #e66767; --c-base: #4c5b63; color-scheme: dark; }
 
 * { box-sizing: border-box; }
@@ -63,6 +63,9 @@ td:first-child { font-family: var(--f-body); }
 .bad { color: var(--bad); background: var(--bad-bg); }
 .sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 8px; vertical-align: -1px; }
 .note { font-size: 12px; color: var(--fg-3); margin: 0; }
+.curves { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.curves figure { margin: 0; display: grid; gap: 4px; min-width: 0; }
+.curves figcaption { font-size: 13px; font-weight: 500; }
 </style>
 
 <div class="wrap">
@@ -79,9 +82,26 @@ td:first-child { font-family: var(--f-body); }
       <h2>Media ROI · prior vs posterior</h2>
       <p class="sub">£ revenue per £ spent, 90% credible interval. A posterior narrower than its prior means the data taught the model something.</p>
     </div>
-    <div class="legend"><span><i style="background:var(--track)"></i>Prior 90%</span><span><i style="background:var(--c-video)"></i>Posterior 90% (channel colour) · dot = median</span><span>dashed line = break-even ROI 1.0</span></div>
+    <div class="legend"><span><i style="background:var(--track)"></i>Prior 90%</span><span><i style="background:var(--c-tv)"></i>Posterior 90% (channel colour) · dot = median</span><span>dashed line = break-even ROI 1.0</span></div>
     <div class="chart" id="roiChart"></div>
     <div class="tbl" id="roiTable"></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Response curves</h2>
+      <p class="sub">Annualised incremental revenue vs annual spend, scaling each channel's historical flighting. Dot = current spend; dashed line = break-even (revenue = spend). Band = 90% interval.</p>
+    </div>
+    <div class="curves" id="curves"></div>
+  </section>
+
+  <section class="panel" id="sensPanel">
+    <div class="panel-head">
+      <h2>Sensitivity: knots and ROI priors</h2>
+      <p class="sub">Same data, different assumptions. Stable ROIs across rows mean the result does not hinge on the assumption.</p>
+      <p class="note">knots · k1/k6/k12: flat vs time-varying baseline (before seasonality terms). season · f1: k1 + annual Fourier terms (chosen base). priors · ROI ~ LogNormal: f1 = median 1, σ 0.7 · wide = σ 1.5 · tight = σ 0.35 · high = median 2, σ 0.7. Prior variants use shorter chains, no holdout.</p>
+    </div>
+    <div class="tbl" id="sensTable"></div>
   </section>
 
   <section class="panel">
@@ -99,6 +119,7 @@ td:first-child { font-family: var(--f-body); }
         <p class="sub">Standardised scale, 90% interval, checked against the expected sign.</p>
       </div>
       <div class="chart" id="signChart"></div>
+      <div class="tbl" id="priceTable"></div>
     </section>
     <section class="panel">
       <div class="panel-head">
@@ -124,10 +145,10 @@ td:first-child { font-family: var(--f-body); }
 
 <script>
 const D = /*__DATA__*/null;
-const CH = ["video", "social", "partnership", "ooh", "search_rdm"];
-const LABEL = { video: "Video (TV+VOD+OLV)", social: "Social", partnership: "Online partnership", ooh: "Out of home",
+const CH = ["tv", "digital_video", "social", "partnership", "ooh", "search_rdm"];
+const LABEL = { tv: "TV (GRPs)", digital_video: "Digital video (VOD+OLV)", social: "Social", partnership: "Online partnership", ooh: "Out of home",
   search_rdm: "Search + retail digital", temp_avg: "Avg temperature", heat_excess: "Heat above 20°C max",
-  distribution: "Distribution (ACV)", rel_base_price: "Price vs competitors", promo_distribution: "Promo breadth",
+  distribution: "Distribution (ACV)", rel_base_price: "Price vs competitors", log_rel_price: "Price premium (log)", promo_distribution: "Promo breadth", promo_intensity: "Promo intensity",
   comp_media_spend: "Competitor media", rainfall: "Rainfall", new_year_week: "New Year week", baseline: "Baseline",
   promo_depth: "Promo depth" };
 const lab = k => LABEL[k] || k.replace(/^spend_/, "").replace(/_/g, " ");
@@ -222,11 +243,11 @@ function axis(svg, x, lo, hi, top, bottom, fmt = v => v) {
   axis(svg, x, -m, m, top, H - 28, v => v.toFixed(1));
   el("line", { x1: x(0), x2: x(0), y1: top, y2: H - 28, style: "stroke:var(--fg-3)" }, svg);
   rows.forEach((r, i) => {
-    const y = top + i * rowH + rowH / 2, ok = r.sign_ok === true || r.sign_ok === "True";
+    const y = top + i * rowH + rowH / 2, ok = r.sign_ok === true || r.sign_ok === "True", none = r.sign_ok == null;
     txt(svg, 0, y + 4, lab(r.variable), { class: "lbl" });
-    el("line", { x1: x(r.q05), x2: x(r.q95), y1: y, y2: y, style: `stroke:${ok ? "var(--c-driver)" : "var(--c-neg)"};stroke-width:6;stroke-linecap:round` }, svg);
+    el("line", { x1: x(r.q05), x2: x(r.q95), y1: y, y2: y, style: `stroke:${ok || none ? "var(--c-driver)" : "var(--c-neg)"};stroke-width:6;stroke-linecap:round` }, svg);
     el("circle", { cx: x(r.mean), cy: y, r: 4.5, style: "fill:var(--panel);stroke:var(--fg);stroke-width:1.5" }, svg);
-    txt(svg, W - R + 10, y + 4, ok ? "sign ✓" : "sign ✗", { class: "num", style: `fill:${ok ? "var(--ok)" : "var(--bad)"}` });
+    txt(svg, W - R + 10, y + 4, none ? "no prior" : ok ? "sign ✓" : "sign ✗", { class: "num", style: `fill:${none ? "var(--fg-3)" : ok ? "var(--ok)" : "var(--bad)"}` });
   });
   document.getElementById("signChart").appendChild(svg);
 })();
@@ -239,6 +260,49 @@ function axis(svg, x, lo, hi, top, bottom, fmt = v => v) {
     sets.map(s => `<tr><td>${s.replace("mmm_", "")}</td><td>${f(val(s, "R_Squared"))}</td><td>${f(100 * val(s, "MAPE"), 1)}%</td><td>${f(100 * val(s, "wMAPE"), 1)}%</td></tr>`).join("")}</tbody></table>`;
   document.getElementById("convTable").innerHTML = `<table><thead><tr><th>Parameter</th><th>Max R-hat</th><th>Min ESS</th><th></th></tr></thead><tbody>${
     D.conv.map(r => `<tr><td>${r.param}</td><td>${f(r.max_rhat, 3)}</td><td>${f(r.min_ess_bulk, 0)}</td><td>${r.max_rhat < 1.01 && r.min_ess_bulk > 400 ? chip("ok", "ok") : chip("bad", "check")}</td></tr>`).join("")}</tbody></table>`;
+})();
+
+/* Price & promo */
+(() => {
+  if (!D.price.length) return;
+  const name = { price_elasticity: "Price elasticity (premium vs competitors)", promo_uplift_per_10pp: "Volume uplift per +10pp promo intensity (%)" };
+  document.getElementById("priceTable").innerHTML = `<table><thead><tr><th>Effect</th><th>Median</th><th>90% interval</th></tr></thead><tbody>${
+    D.price.map(r => `<tr><td>${name[r.effect] || r.effect}</td><td>${f(r.median)}</td><td>${f(r.q05)} – ${f(r.q95)}</td></tr>`).join("")}</tbody></table>`;
+})();
+
+/* Response curves */
+(() => {
+  const box = document.getElementById("curves");
+  for (const ch of CH) {
+    const d = D.curves.filter(r => r.channel === ch);
+    if (!d.length) continue;
+    const W = 320, H = 200, L = 46, B = 30, T = 10, R = 10;
+    const xmax = Math.max(...d.map(r => r.spend)), ymax = Math.max(...d.map(r => Math.max(r.ci_hi, r.spend)));
+    const x = scale(0, xmax, L, W - R), y = scale(0, ymax, H - B, T);
+    const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": `${lab(ch)} response curve` });
+    for (const t of ticks(0, ymax / 1e3, 4)) { el("line", { x1: L, x2: W - R, y1: y(t * 1e3), y2: y(t * 1e3), style: "stroke:var(--line)" }, svg);
+      txt(svg, L - 6, y(t * 1e3) + 4, t, { "text-anchor": "end", class: "num" }); }
+    for (const t of ticks(0, xmax / 1e3, 4)) txt(svg, x(t * 1e3), H - B + 16, t, { "text-anchor": "middle", class: "num" });
+    const pts = k => d.map(r => `${x(r.spend)},${y(r[k])}`).join(" ");
+    el("polygon", { points: pts("ci_hi") + " " + d.slice().reverse().map(r => `${x(r.spend)},${y(r.ci_lo)}`).join(" "), style: `fill:var(--c-${ch});opacity:.18` }, svg);
+    el("line", { x1: x(0), y1: y(0), x2: x(xmax), y2: y(xmax), style: "stroke:var(--fg-3);stroke-dasharray:4 4" }, svg);
+    el("polyline", { points: pts("mean"), style: `fill:none;stroke:var(--c-${ch});stroke-width:2` }, svg);
+    const cur = d.find(r => r.spend_multiplier === 1);
+    el("circle", { cx: x(cur.spend), cy: y(cur.mean), r: 5, style: `fill:var(--c-${ch});stroke:var(--panel);stroke-width:2` }, svg);
+    txt(svg, W - R, H - 4, "annual spend £k", { "text-anchor": "end", style: "font-size:10px" });
+    const fig = document.createElement("figure");
+    fig.innerHTML = `<figcaption>${lab(ch)} <span class="note">· now £${f(cur.spend / 1e3, 0)}k → £${f(cur.mean / 1e3, 0)}k revenue / yr</span></figcaption>`;
+    fig.appendChild(svg); box.appendChild(fig);
+  }
+})();
+
+/* Sensitivity */
+(() => {
+  const rows = ["knots", "season", "priors"].flatMap(k => D.sens[k].map(r => ({ ...r, set: k })));
+  if (!rows.length) { document.getElementById("sensPanel").hidden = true; return; }
+  const cell = (r, c) => `${f(r["roi_" + c])}<span class="note"> ${f(r["roi_lo_" + c], 1)}–${f(r["roi_hi_" + c], 1)}</span>`;
+  document.getElementById("sensTable").innerHTML = `<table><thead><tr><th>Variant</th><th>R²</th><th>Holdout MAPE</th><th>Resid. ACF(1)</th><th>Price el.</th><th>All media ROI</th>${CH.map(c => `<th>${lab(c)}</th>`).join("")}</tr></thead><tbody>${
+    rows.map(r => `<tr><td>${r.set} · ${r.tag}</td><td>${f(r.r2)}</td><td>${r.holdout_mape == null ? "–" : f(100 * r.holdout_mape, 1) + "%"}</td><td>${f(r.acf_lag1)}</td><td>${f(r.price_elasticity)}</td><td>${cell(r, "All Channels")}</td>${CH.map(c => `<td>${cell(r, c)}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
 })();
 
 /* Data overview */

@@ -8,12 +8,15 @@ ROOT = Path(__file__).resolve().parents[1]
 RAW = ROOT / "data/raw/model_variables.xlsx"
 OUT = ROOT / "data/clean/model_data.csv"
 
+# group -> (raw channels, execution columns). None = no execution metric, spend is used.
+# TV kept apart from digital video: GRPs and impressions don't add up.
 CHANNEL_GROUPS = {
-    "video": ["TV", "VOD", "OLV"],
-    "social": ["Social"],
-    "partnership": ["Online_Partnership"],
-    "ooh": ["OOH"],
-    "search_rdm": ["Search", "RDM"],
+    "tv": (["TV"], ["Media_TV_GRPs"]),
+    "digital_video": (["VOD", "OLV"], ["Media_VOD_Impressions", "Media_OLV_Impressions"]),
+    "social": (["Social"], ["Media_Social_Impressions"]),
+    "partnership": (["Online_Partnership"], None),
+    "ooh": (["OOH"], None),
+    "search_rdm": (["Search", "RDM"], ["Media_Search_Impressions", "Media_RDM_Impressions"]),
 }
 
 
@@ -45,9 +48,16 @@ def build(df):
         "base_price_per_kg": df["Base_Avg_PPKG"],
         "comp_price_per_kg": comp_price,
         "rel_base_price": df["Base_Avg_PPKG"] / comp_price,
+        # logs so coefficients read as elasticities
+        "log_base_price": np.log(df["Base_Avg_PPKG"]),
+        "log_comp_price": np.log(comp_price),
+        # own and competitor log prices share the inflation trend (r=0.86): model the premium instead
+        "log_rel_price": np.log(df["Base_Avg_PPKG"] / comp_price),
         "promo_share_vol": df["Promotion_Volume_Sales"] / df["Volume_Sales"],
         "promo_distribution": df["Promotion_ACV_Weighted_Distribution_wtd"],
         "promo_depth": depth,
+        # discount x share of stores on promo: one promo pressure measure
+        "promo_intensity": depth * df["Promotion_ACV_Weighted_Distribution_wtd"] / 100,
         "distribution": df["ACV_Weighted_Distribution_wtd"],
         "temp_avg": df["weather_average_temp"],
         # degrees above 20C weekly max: captures heatwave peaks a linear temp term misses
@@ -55,14 +65,18 @@ def build(df):
         "rainfall": df["weather_rainfall"],
         "comp_media_spend": df["Comp_Brand_A_Media_Spends"] + df["Comp_Brand_B_Media_Spends"],
         "comp_volume_kg": comp_vol.sum(1),
+        # annual seasonality beyond temperature (spring sells more than autumn at equal temp)
+        "season_sin": np.sin(2 * np.pi * df["Date"].dt.dayofyear / 365.25),
+        "season_cos": np.cos(2 * np.pi * df["Date"].dt.dayofyear / 365.25),
         # week starting 27 Dec - 2 Jan: ~20% volume drop every year
         "new_year_week": (((df["Date"].dt.month == 12) & (df["Date"].dt.day >= 27))
                           | ((df["Date"].dt.month == 1) & (df["Date"].dt.day <= 2))).astype(int),
     })
-    for ch in [c for g in CHANNEL_GROUPS.values() for c in g]:
-        out[f"raw_spend_{ch}"] = df[f"Media_{ch}_Spends"]
-    for grp, chs in CHANNEL_GROUPS.items():
+    for grp, (chs, exe) in CHANNEL_GROUPS.items():
+        for ch in chs:
+            out[f"raw_spend_{ch}"] = df[f"Media_{ch}_Spends"]
         out[f"spend_{grp}"] = out[[f"raw_spend_{c}" for c in chs]].sum(1)
+        out[f"exec_{grp}"] = df[exe].sum(1) if exe else out[f"spend_{grp}"]
     return out
 
 

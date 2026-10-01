@@ -10,6 +10,8 @@ OUT = ROOT / "outputs/dashboard.html"
 
 
 def records(name, index_col=None):
+    if not (TAB / f"{name}.csv").exists():
+        return []
     df = pd.read_csv(TAB / f"{name}.csv")
     if index_col is not None:
         df = df.rename(columns={df.columns[0]: index_col})
@@ -24,6 +26,9 @@ data = {
     "fit": records("diag_fit"),
     "yearly": records("eda_yearly_summary"),
     "corr": records("eda_correlations", "driver"),
+    "price": records("results_price_promo", "effect"),
+    "curves": records("results_response_curves"),
+    "sens": {k: records(f"sens_{k}") for k in ("knots", "season", "priors")},
 }
 html = TEMPLATE.read_text().replace("/*__DATA__*/null", json.dumps(data))
 OUT.write_text(html)

@@ -61,7 +61,7 @@ yearly = (df.assign(year=t.dt.year, media=df.filter(regex="^spend_").sum(1))
 yearly.to_csv(TAB / "eda_yearly_summary.csv")
 print(yearly.to_string())
 
-drivers = ["temp_avg", "rainfall", "distribution", "base_price_per_kg", "rel_base_price", "promo_depth",
+drivers = ["temp_avg", "heat_excess", "rainfall", "distribution", "log_rel_price", "promo_intensity", "promo_depth",
            "promo_distribution", "comp_media_spend"] + [f"spend_{g}" for g in groups]
 corr = df[drivers + ["volume_kg"]].corr()["volume_kg"].drop("volume_kg").sort_values()
 corr.round(3).to_csv(TAB / "eda_correlations.csv")
