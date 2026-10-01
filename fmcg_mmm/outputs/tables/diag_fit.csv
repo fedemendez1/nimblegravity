@@ -1,4 +1,13 @@
-model,metric,geo_granularity,value
-mmm_quick,R_Squared,national,0.904
-mmm_quick,MAPE,national,0.049
-mmm_quick,wMAPE,national,0.049
+model,metric,geo_granularity,value,evaluation_set
+mmm_full,R_Squared,national,0.904,
+mmm_full,MAPE,national,0.049,
+mmm_full,wMAPE,national,0.049,
+mmm_holdout13,R_Squared,national,0.907,Train
+mmm_holdout13,R_Squared,national,0.138,Test
+mmm_holdout13,R_Squared,national,0.902,All Data
+mmm_holdout13,MAPE,national,0.05,Train
+mmm_holdout13,MAPE,national,0.058,Test
+mmm_holdout13,MAPE,national,0.05,All Data
+mmm_holdout13,wMAPE,national,0.05,Train
+mmm_holdout13,wMAPE,national,0.057,Test
+mmm_holdout13,wMAPE,national,0.05,All Data
