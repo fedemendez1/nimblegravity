@@ -1,0 +1,4 @@
+model,metric,geo_granularity,value
+mmm_quick,R_Squared,national,0.904
+mmm_quick,MAPE,national,0.049
+mmm_quick,wMAPE,national,0.049

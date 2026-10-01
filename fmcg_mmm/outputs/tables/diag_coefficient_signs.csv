@@ -1,0 +1,9 @@
+variable,mean,q05,q95,p_positive,expected_sign,sign_ok
+temp_avg,0.361,0.291,0.436,1.0,1,True
+heat_excess,0.501,0.431,0.563,1.0,1,True
+distribution,0.472,0.404,0.538,1.0,1,True
+rel_base_price,-0.308,-0.368,-0.249,0.0,-1,True
+promo_distribution,0.036,-0.026,0.093,0.828,1,True
+comp_media_spend,0.06,0.012,0.11,0.972,-1,False
+rainfall,-0.112,-0.16,-0.062,0.0,-1,True
+new_year_week,-0.146,-0.185,-0.104,0.0,-1,True
