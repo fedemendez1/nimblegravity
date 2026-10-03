@@ -18,6 +18,7 @@ python 05_dashboard.py                   # outputs/dashboard.html
 python 03_model.py --tag k6 --knots 6 --no-season --draws screen        # etc.
 python 03_model.py --tag wide --roi-prior 0,1.5 --draws screen
 python 06_sensitivity.py --tags f1 wide tight high --out sens_priors
+python 07_residuals.py --model mmm_cC        # residual autocorrelation deep-dive
 ```
 
 ## Model definition

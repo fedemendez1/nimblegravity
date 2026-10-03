@@ -65,6 +65,9 @@ def build(df):
         "rainfall": df["weather_rainfall"],
         "comp_media_spend": df["Comp_Brand_A_Media_Spends"] + df["Comp_Brand_B_Media_Spends"],
         "comp_volume_kg": comp_vol.sum(1),
+        # competitor promo pressure: residuals dip when brand C promotes / brand A discounts deeper
+        "comp_c_promo_share": df["Comp_Brand_C_Promotion_Volume_Sales"] / df["Comp_Brand_C_Volume_Sales"],
+        "comp_a_promo_depth": (1 - df["Comp_Brand_A_Promotion_Avg_PPKG"] / df["Comp_Brand_A_Base_Avg_PPKG"]).clip(lower=0),
         # annual seasonality beyond temperature (spring sells more than autumn at equal temp)
         "season_sin": np.sin(2 * np.pi * df["Date"].dt.dayofyear / 365.25),
         "season_cos": np.cos(2 * np.pi * df["Date"].dt.dayofyear / 365.25),

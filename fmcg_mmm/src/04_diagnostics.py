@@ -22,7 +22,8 @@ from meridian.model import model
 from style import CHANNEL_COLORS, GRID, INK_2, ROOT, SERIES, TAB, save
 
 EXPECTED_SIGN = {"temp_avg": 1, "heat_excess": 1, "distribution": 1, "log_rel_price": -1,
-                 "promo_intensity": 1, "comp_media_spend": -1, "rainfall": -1, "new_year_week": -1}
+                 "promo_intensity": 1, "comp_media_spend": -1,
+                 "comp_c_promo_share": -1, "comp_a_promo_depth": -1, "rainfall": -1, "new_year_week": -1}
 
 
 def load(name):

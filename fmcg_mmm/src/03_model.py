@@ -37,13 +37,13 @@ DRAWS = {
 }
 
 
-def load_data(path=ROOT / "data/clean/model_data.csv"):
+def load_data(path=ROOT / "data/clean/model_data.csv", drivers=DRIVERS):
     df = pd.read_csv(path)
     return (dfb.DataFrameInputDataBuilder(kpi_type="non_revenue")
             .with_kpi(df, kpi_col="volume_kg")
             .with_revenue_per_kpi(df, revenue_per_kpi_col="price_per_kg")
             .with_controls(df, control_cols=CONTROLS)
-            .with_non_media_treatments(df, non_media_treatment_cols=DRIVERS)
+            .with_non_media_treatments(df, non_media_treatment_cols=drivers)
             .with_media(df, media_cols=[f"exec_{c}" for c in CHANNELS],
                         media_spend_cols=[f"spend_{c}" for c in CHANNELS], media_channels=CHANNELS)
             .build())
@@ -58,8 +58,8 @@ def model_spec(times, holdout_weeks=0, knots=1, roi_prior=ROI_PRIOR):
                           non_media_treatments_prior_type="coefficient", holdout=holdout)
 
 
-def fit(holdout_weeks=0, knots=1, roi_prior=ROI_PRIOR, draws="full"):
-    data = load_data()
+def fit(holdout_weeks=0, knots=1, roi_prior=ROI_PRIOR, draws="full", extra=()):
+    data = load_data(drivers=DRIVERS + list(extra))
     times = [str(t) for t in data.time.values]
     mmm = model.Meridian(input_data=data, model_spec=model_spec(times, holdout_weeks, knots, roi_prior))
     mmm.sample_prior(500, seed=SEED)
@@ -74,13 +74,14 @@ if __name__ == "__main__":
     ap.add_argument("--knots", type=int, default=1)
     ap.add_argument("--roi-prior", default=",".join(map(str, ROI_PRIOR)), help="lognormal mu,sigma")
     ap.add_argument("--draws", choices=DRAWS, default="full")
+    ap.add_argument("--extra", nargs="*", default=[], help="additional driver columns")
     ap.add_argument("--no-season", action="store_true", help="drop Fourier seasonality controls")
     args = ap.parse_args()
 
     roi_prior = tuple(float(v) for v in args.roi_prior.split(","))
     if args.no_season:
         CONTROLS[:] = [c for c in CONTROLS if not c.startswith("season_")]
-    mmm = fit(args.holdout, args.knots, roi_prior, args.draws)
+    mmm = fit(args.holdout, args.knots, roi_prior, args.draws, args.extra)
     name = f"mmm_{args.tag}" + (f"_ho{args.holdout}" if args.holdout else "")
     model.save_mmm(mmm, str(ROOT / f"outputs/{name}.pkl"))
     print(f"saved outputs/{name}.pkl")
