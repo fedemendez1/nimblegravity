@@ -178,6 +178,11 @@ Tags: `stage1` (= cC, full) → `final` (`--ar-from mmm_stage1`, full); idem `_h
 | mediana 2 LN(0.69,0.7) | 1.61 | 1.00 | 1.40 | 1.56 | 1.42 | 2.33 | 1.97 |
 R² idéntico (0.929–0.930), elasticidad −0.46/−0.48 en todas. Lectura: canales no identificados; patrón estable = TV último, OOH primero en los 4 priors; total ~1.0–1.06 con mediana 1 (data lo baja a 1.6 desde 2).
 
+**Holdout: se reporta el de 26 semanas** (ago-24 → ene-25, pronóstico genuino al final de la serie). El de 13 semanas daba R² test 0.67 con MAPE 3.8% (igual que train) porque nov–ene es plano: sd 224k vs 673k de la serie, y el R² se mide contra la varianza del período. Espejo por bloques de 13 semanas: verano R² 0.81–0.86, invierno −1.3 a 0.4, MAPE 3–9% en todos → el R² de 13 semanas refleja la estación, no el modelo.
+- `final_ho26`: **test R² 0.91, MAPE 4.6%** (train 0.93 / 4.1%). `stage1_ho26`: 0.915 / 4.1%.
+- Estabilidad: entrenado sin los últimos 6 meses, elasticidad −0.46 (vs −0.47) y ROI total 1.13 (vs 1.06); TV 0.73 sigue último (`sens_ho26.csv`).
+- R-hat explicado al usuario: chequeo de convergencia entre 4 cadenas (<1.01 OK); final ≤1.004, 0 divergencias. Una línea en el apéndice.
+
 ### Próximos pasos de modelado
 1. ~~Revisar final full + holdout + sensibilidad de priors final.~~ Hecho. Luego `04_diagnostics.py --model mmm_final`, `05_dashboard.py` (apuntar a `mmm_final`), README (sacar AR de "With more time", agregar promo C y AR a la definición).
 2. Decisiones abiertas: ROI por canal vs. total (¿agrupar en 2–3?), mostrar o no curvas de respuesta, base de contribuciones, sensibilidad umbral 20°C de heat_excess.
