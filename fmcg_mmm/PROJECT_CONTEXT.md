@@ -166,8 +166,20 @@ Mensaje para la entrevista: "Detectamos autocorrelación (DW 1.26), buscamos cau
 ### Corridas del modelo final (lanzadas en sesión 3)
 Tags: `stage1` (= cC, full) → `final` (`--ar-from mmm_stage1`, full); idem `_ho13`; sensibilidad de priors sobre el final (screen, `--ar-from mmm_stage1`): `final_wide` LogNormal(0,1.5), `final_tight` (0,0.35), `final_high` (0.693,0.7 = mediana 2) → `sens_priors_final.csv`. Nota: los parámetros exactos de wide/tight/high de la sesión 2 no estaban documentados; tight/high se reconstruyeron.
 
+**Resultados (full, 4×1000):** R-hat ≤1.004, 0 divergencias. ACF −0.02 (DW 2.01), R² 0.93, MAPE 4.0%, holdout 3.8%. Elasticidad −0.47. ROI total 1.06 (0.65–1.66).
+
+**Sensibilidad de priors sobre el final** (`sens_priors_final.csv`):
+
+| Prior ROI | Total | TV | Video dig. | Social | Partner. | OOH | Search |
+|---|---|---|---|---|---|---|---|
+| base LN(0,0.7) | 1.06 | 0.69 | 0.91 | 0.98 | 0.91 | 1.34 | 0.99 |
+| ancho LN(0,1.5) | 0.99 | 0.40 | 0.64 | 0.78 | 0.72 | 1.67 | 0.87 |
+| angosto LN(0,0.35) | 1.04 | 0.89 | 1.00 | 1.01 | 0.99 | 1.09 | 1.01 |
+| mediana 2 LN(0.69,0.7) | 1.61 | 1.00 | 1.40 | 1.56 | 1.42 | 2.33 | 1.97 |
+R² idéntico (0.929–0.930), elasticidad −0.46/−0.48 en todas. Lectura: canales no identificados; patrón estable = TV último, OOH primero en los 4 priors; total ~1.0–1.06 con mediana 1 (data lo baja a 1.6 desde 2).
+
 ### Próximos pasos de modelado
-1. Revisar final full + holdout + sensibilidad de priors final. Luego `04_diagnostics.py --model mmm_final`, `05_dashboard.py` (apuntar a `mmm_final`), README (sacar AR de "With more time", agregar promo C y AR a la definición).
+1. ~~Revisar final full + holdout + sensibilidad de priors final.~~ Hecho. Luego `04_diagnostics.py --model mmm_final`, `05_dashboard.py` (apuntar a `mmm_final`), README (sacar AR de "With more time", agregar promo C y AR a la definición).
 2. Decisiones abiertas: ROI por canal vs. total (¿agrupar en 2–3?), mostrar o no curvas de respuesta, base de contribuciones, sensibilidad umbral 20°C de heat_excess.
 3. Knots 2/3: ya no hace falta.
 

@@ -1,0 +1,5 @@
+tag,r2,mape,acf_lag1,holdout_mape,roi_tv,roi_lo_tv,roi_hi_tv,roi_digital_video,roi_lo_digital_video,roi_hi_digital_video,roi_social,roi_lo_social,roi_hi_social,roi_partnership,roi_lo_partnership,roi_hi_partnership,roi_ooh,roi_lo_ooh,roi_hi_ooh,roi_search_rdm,roi_lo_search_rdm,roi_hi_search_rdm,roi_All Channels,roi_lo_All Channels,roi_hi_All Channels,price_elasticity
+final,0.93,0.04,-0.024,0.038,0.689,0.25,1.524,0.913,0.31,2.308,0.975,0.32,2.604,0.905,0.297,2.283,1.342,0.397,3.8,0.986,0.337,2.914,1.056,0.653,1.659,-0.468
+final_wide,0.93,0.04,-0.023,,0.402,0.056,1.447,0.644,0.063,2.497,0.778,0.08,3.182,0.715,0.08,2.582,1.666,0.112,5.966,0.871,0.066,10.022,0.993,0.44,1.766,-0.472
+final_tight,0.929,0.04,-0.022,,0.893,0.521,1.427,0.996,0.569,1.804,1.013,0.575,1.744,0.99,0.55,1.682,1.086,0.588,2.059,1.007,0.566,1.816,1.038,0.805,1.375,-0.463
+final_high,0.93,0.04,-0.026,,0.999,0.417,1.965,1.396,0.539,3.177,1.557,0.623,3.52,1.416,0.528,3.014,2.332,0.814,5.365,1.972,0.63,6.396,1.605,1.073,2.345,-0.476
