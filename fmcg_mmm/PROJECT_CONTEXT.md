@@ -105,6 +105,10 @@ El usuario NO quiere pasar a storytelling hasta cerrar el modelado. Explicar tod
 - Lectura: premium resta ~15% volumen, distribución suma ~12–13% → se compensan. Elasticidad −0.48 (90% −0.58/−0.39), P(<0)≈100%, sigue lejos de 0 con intervalos ×1.4. Inelástico → la suba de precio aumentó la facturación.
 - Caveats acordados: (1) depende de "sin tendencia oculta" (6 knots la anula; 1 knot defendido por parsimonia + holdout); (2) es elasticidad relativa, no propia; (3) el −16% es vs. el premium mínimo observado (1.26×).
 - Decidimos NO correr la variante con tendencia lineal.
+- **Mensaje refinado (sesión 3):** suba del premium 1.4×→2.0× (Δlog 0.36) ⇒ volumen ~−15% *contrafactual* ("sin la suba habríamos vendido ~15% más"; el volumen real quedó plano porque la distribución compensó). Precio propio +50% ⇒ facturación por efecto precio ~+27%. Robusto en todo el intervalo AR (−0.61/−0.32): volumen −20%/−11%, facturación +20%/+34%; aun con elasticidad −1 sería ~+5%.
+  - Decir "facturación", no "rentabilidad" (no hay márgenes/costos; 2022–23 hubo inflación de costos).
+  - No mezclar con el −16% de contribuciones (base = premium mínimo 1.26×, no el inicial). Usar una sola base en la slide.
+  - Cálculos hechos a mano con la elasticidad; si van a slide, sacarlos del modelo.
 
 ### Distribución
 - Es ACV ponderada (facturación total de la tienda, todas las categorías). El usuario objetó que lo relevante sería la ponderada por categoría (PCV): no está en la data, solo ACV. Caveat menor (ruido de medición; posible endogeneidad: los retailers listan lo que vende).
@@ -150,9 +154,22 @@ ROIs por canal ~idénticos (TV 0.71 sigue último).
 
 Mensaje para la entrevista: "Detectamos autocorrelación (DW 1.26), buscamos causas omitidas en todas las variables (solo promo C tenía sentido), la modelamos explícitamente como AR(1) dentro de Meridian y la validamos con un modelo bayesiano independiente: residuos limpios y conclusiones sin cambio."
 
-### Próximo paso (pendiente de decisión del usuario)
-1. Adoptar `cCar` como modelo final → correr `mmm_cC` y `mmm_cCar` con cadenas completas (`--draws full`, ~12 min c/u, la 2ª con `--ar-from mmm_cC`), `04_diagnostics.py`, `05_dashboard.py`, actualizar README (sacar AR de "With more time").
-2. Knots 2/3: ya no hace falta para la autocorrelación.
+**Decisión del usuario: se adopta la corrección AR(1)** (modelo final = drivers base + promo C + AR).
+
+**Cómo explicarlo (sin "para arreglar la autocorrelación"):**
+- El AR no es un driver: en promedio aporta 0 volumen y no le saca crédito a nada (prueba: elasticidad, ROI y distribución no cambian). Eso lo distingue de las variables "trampa" descartadas.
+- Representa factores no observados que duran semanas: exhibiciones/espacio en góndola (ACV dice si estás, no cuánto), quiebres de stock, acciones de retailers/surtido, marcas propias (no están en la data), stockeo de packs. ρ≈0.4: un shock sigue ~40% la semana siguiente, ~16% la otra.
+- Por qué hace falta: (1) sin él el modelo cree tener 161 semanas independientes, en realidad ~70 → intervalos sobreconfiados; (2) evita que shocks persistentes se los quede la variable con tendencia (precio, distribución).
+- Argumento para el panel: es la versión acotada de la línea base variable de Meridian (knots), que es la solución de Google para lo mismo pero se comía el precio. Corrección AR es econometría estándar (Cochrane-Orcutt, 1949) y común en MMM econométrico clásico.
+- Única trampa posible: vender el R² 0.93 como mejora (sale del término AR).
+
+### Corridas del modelo final (lanzadas en sesión 3)
+Tags: `stage1` (= cC, full) → `final` (`--ar-from mmm_stage1`, full); idem `_ho13`; sensibilidad de priors sobre el final (screen, `--ar-from mmm_stage1`): `final_wide` LogNormal(0,1.5), `final_tight` (0,0.35), `final_high` (0.693,0.7 = mediana 2) → `sens_priors_final.csv`. Nota: los parámetros exactos de wide/tight/high de la sesión 2 no estaban documentados; tight/high se reconstruyeron.
+
+### Próximos pasos de modelado
+1. Revisar final full + holdout + sensibilidad de priors final. Luego `04_diagnostics.py --model mmm_final`, `05_dashboard.py` (apuntar a `mmm_final`), README (sacar AR de "With more time", agregar promo C y AR a la definición).
+2. Decisiones abiertas: ROI por canal vs. total (¿agrupar en 2–3?), mostrar o no curvas de respuesta, base de contribuciones, sensibilidad umbral 20°C de heat_excess.
+3. Knots 2/3: ya no hace falta.
 
 ### Próximo paso acordado en sesión 2 (superado por lo anterior)
 1. `03_model.py --tag cC_k2 --knots 2 --draws screen --extra comp_c_promo_share` y lo mismo con `--knots 3`. Mirar ACF/DW, elasticidad de precio (¿sobrevive?) y holdout.
@@ -171,7 +188,6 @@ Mensaje para la entrevista: "Detectamos autocorrelación (DW 1.26), buscamos cau
    - modelo geo;
    - ROI sobre margen;
    - elasticidad propia vs. cruzada;
-   - errores AR en PyMC/Stan;
    - optimizador de presupuesto.
 
 ## Gotchas técnicos
