@@ -3,3 +3,4 @@ pandas==2.3.3
 numpy==2.3.5
 matplotlib==3.10.9
 openpyxl==3.1.5
+pymc==5.28.5

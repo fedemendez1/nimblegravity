@@ -38,6 +38,8 @@ Archivo para retomar el trabajo en una sesión nueva. Leer junto con `README.md`
 | `04_diagnostics.py` | Convergencia, fit, residuos, signos, elasticidad, ROI, contribuciones y curvas de respuesta → `outputs/tables`, `outputs/figures` |
 | `05_dashboard.py` + `dashboard_template.html` | Dashboard HTML |
 | `06_sensitivity.py` | Compara variantes → `sens_*.csv` y su figura |
+| `08_ar_twin.py [--no-ar]` | Gemelo bayesiano (PyMC) de la spec de Meridian con errores AR(1) estimados en conjunto. ~15 s → `tables/ar_twin.csv` |
+| `09_variable_search.py` | Búsqueda de variables con modelo espejo lineal (replica residuos de Meridian, corr 0.99) → `tables/search_candidates.csv` |
 | `07_residuals.py --model mmm_x` | Residuos semanales, ACF/DW por año, screening de todas las columnas crudas y lags vs. residuos, figura `diag_02_residual_autocorr_<model>` |
 
 ## Decisiones tomadas (y por qué)
@@ -124,7 +126,35 @@ El usuario NO quiere pasar a storytelling hasta cerrar el modelado. Explicar tod
 - Rescreening sobre residuos de `cC`: nada más con señal (todo <0.25; RDM −0.38 es espurio).
 - El usuario prefiere no presentar la autocorrelación "así" y está dispuesto a sumar variables aunque suba el VIF (en Nielsen solo sacaban si corr >0.9).
 
-### Próximo paso acordado (pendiente de correr)
+### Autocorrelación – RESUELTA (sesión 3)
+**Búsqueda exhaustiva de variables** (`09_variable_search.py`, modelo espejo OLS con media ≥0 que replica residuos de Meridian; 114 candidatas curadas + ~250 crudas, individuales y forward por BIC/ACF):
+- Ninguna variable legítima baja la ACF más allá de promo C (0.31). Lo que la baja más tiene signo absurdo (premium vs A positivo, distribución de B positiva, profundidad de promo B/C positiva) o es endógeno.
+- Descartadas con razón: `Number_of_Stores_Selling` (corr 0.74 con volumen, 0.43 con temperatura → refleja demanda; la ACV usada tiene 0.00 con temperatura); media de A (31 semanas, casi todo Q2–Q3 2024 = dummy disfrazada); volúmenes de competidores (endógenos).
+- Índice de precio de competencia: alternativas (pesos fijos, por marca, por unidad) no cambian la ACF.
+- Clima no lineal (tramo 15–20°C, tmin ≈ sol) sube R² a 0.955 pero no baja ACF y empeora holdout → no se incluye.
+- Hallazgo: parte de la ACF en Meridian la induce el prior de ROI (media forzada ≥0; con media libre el espejo "explica" la caída H1-2024 con RDM negativo).
+- Conclusión: el resto son desvíos de demanda persistentes (meses) que ninguna columna explica → se **modela**, no se tapa.
+
+**Solución en Meridian** (`03_model.py --ar-from mmm_cC`): GLS factible. El residuo de la semana anterior de una 1ª etapa (`mmm_cC`) entra como control `resid_lag1`; los residuos del modelo pasan a ser las innovaciones AR(1). Equivale a GLS-AR (verificado en espejo: converge en 1 iteración, ρ 0.32).
+
+| (screen) | f1 | cC | **cCar** |
+|---|---|---|---|
+| ACF lag1 | 0.35 | 0.31 | **−0.02** (DW 2.01; 2022 0.09, 2023 −0.21, 2024 −0.04) |
+| R² / MAPE | 0.914 / 4.4% | 0.922 / 4.3% | 0.930 / 4.0% (el R² sube por el término AR, no vender como mejora estructural) |
+| Holdout MAPE (13 sem, cadena completa con holdout en ambas etapas) | – | 3.7% | 3.8% |
+| Elasticidad | −0.48 | −0.46 | −0.47 (−0.56/−0.37) |
+| ROI total | 1.15 | 1.11 | 1.09 |
+ROIs por canal ~idénticos (TV 0.71 sigue último).
+
+**Validación independiente** (`08_ar_twin.py`, AR(1) estimado en conjunto, no en 2 etapas): sin AR reproduce Meridian (ACF 0.31, elasticidad −0.46, ROI 1.09). Con AR: ρ 0.42 (0.28–0.56), ACF innovaciones −0.08, elasticidad −0.46 (−0.61/−0.32), ROI 1.07 (0.65–1.76). R-hat 1.004, 0 divergencias. → Puntos iguales; intervalos honestos ~1.4× más anchos en elasticidad (los de Meridian 2 etapas tratan el lag como conocido → usar los del gemelo para el ancho).
+
+Mensaje para la entrevista: "Detectamos autocorrelación (DW 1.26), buscamos causas omitidas en todas las variables (solo promo C tenía sentido), la modelamos explícitamente como AR(1) dentro de Meridian y la validamos con un modelo bayesiano independiente: residuos limpios y conclusiones sin cambio."
+
+### Próximo paso (pendiente de decisión del usuario)
+1. Adoptar `cCar` como modelo final → correr `mmm_cC` y `mmm_cCar` con cadenas completas (`--draws full`, ~12 min c/u, la 2ª con `--ar-from mmm_cC`), `04_diagnostics.py`, `05_dashboard.py`, actualizar README (sacar AR de "With more time").
+2. Knots 2/3: ya no hace falta para la autocorrelación.
+
+### Próximo paso acordado en sesión 2 (superado por lo anterior)
 1. `03_model.py --tag cC_k2 --knots 2 --draws screen --extra comp_c_promo_share` y lo mismo con `--knots 3`. Mirar ACF/DW, elasticidad de precio (¿sobrevive?) y holdout.
 2. Si el precio sobrevive y baja la ACF → ese es el modelo final; si no → final = base + promo C, y presentar la autocorrelación como diagnóstico trabajado (DW ~1.3, intervalos ×1.4).
 3. Dummies de período (inicio 2022, H1 2024) solo si hay razón de negocio.

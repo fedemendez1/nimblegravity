@@ -6,6 +6,7 @@ Usage:
     python 03_model.py --tag k6 --knots 6           # sensitivity variants
     python 03_model.py --tag wide --roi-prior 0,1.5
     python 03_model.py --draws quick                # smoke test
+    python 03_model.py --tag cCar --extra comp_c_promo_share --ar-from mmm_cC   # AR(1) correction
 """
 import argparse
 import os
@@ -20,7 +21,7 @@ from meridian import backend
 from meridian.data import data_frame_input_data_builder as dfb
 from meridian.model import model, prior_distribution, spec
 
-from style import ROOT
+from style import ROOT, TAB
 
 CHANNELS = ["tv", "digital_video", "social", "partnership", "ooh", "search_rdm"]
 # business drivers: modelled as non-media treatments so Meridian reports their contribution
@@ -37,12 +38,19 @@ DRAWS = {
 }
 
 
-def load_data(path=ROOT / "data/clean/model_data.csv", drivers=DRIVERS):
+def load_data(path=ROOT / "data/clean/model_data.csv", drivers=DRIVERS, ar_from=None):
     df = pd.read_csv(path)
+    controls = CONTROLS
+    if ar_from:
+        # feasible GLS for AR(1) errors (Meridian has no AR term): last week's residual from a
+        # first-stage fit enters as a control, so the model's residuals are the AR innovations
+        r = pd.read_csv(TAB / f"resid_{ar_from}.csv", index_col=0).iloc[:, 0]
+        df["resid_lag1"] = r.shift(1).fillna(0).to_numpy() * 1e6
+        controls = CONTROLS + ["resid_lag1"]
     return (dfb.DataFrameInputDataBuilder(kpi_type="non_revenue")
             .with_kpi(df, kpi_col="volume_kg")
             .with_revenue_per_kpi(df, revenue_per_kpi_col="price_per_kg")
-            .with_controls(df, control_cols=CONTROLS)
+            .with_controls(df, control_cols=controls)
             .with_non_media_treatments(df, non_media_treatment_cols=drivers)
             .with_media(df, media_cols=[f"exec_{c}" for c in CHANNELS],
                         media_spend_cols=[f"spend_{c}" for c in CHANNELS], media_channels=CHANNELS)
@@ -58,8 +66,8 @@ def model_spec(times, holdout_weeks=0, knots=1, roi_prior=ROI_PRIOR):
                           non_media_treatments_prior_type="coefficient", holdout=holdout)
 
 
-def fit(holdout_weeks=0, knots=1, roi_prior=ROI_PRIOR, draws="full", extra=()):
-    data = load_data(drivers=DRIVERS + list(extra))
+def fit(holdout_weeks=0, knots=1, roi_prior=ROI_PRIOR, draws="full", extra=(), ar_from=None):
+    data = load_data(drivers=DRIVERS + list(extra), ar_from=ar_from)
     times = [str(t) for t in data.time.values]
     mmm = model.Meridian(input_data=data, model_spec=model_spec(times, holdout_weeks, knots, roi_prior))
     mmm.sample_prior(500, seed=SEED)
@@ -75,13 +83,14 @@ if __name__ == "__main__":
     ap.add_argument("--roi-prior", default=",".join(map(str, ROI_PRIOR)), help="lognormal mu,sigma")
     ap.add_argument("--draws", choices=DRAWS, default="full")
     ap.add_argument("--extra", nargs="*", default=[], help="additional driver columns")
+    ap.add_argument("--ar-from", help="first-stage model whose lagged residuals enter as a control")
     ap.add_argument("--no-season", action="store_true", help="drop Fourier seasonality controls")
     args = ap.parse_args()
 
     roi_prior = tuple(float(v) for v in args.roi_prior.split(","))
     if args.no_season:
         CONTROLS[:] = [c for c in CONTROLS if not c.startswith("season_")]
-    mmm = fit(args.holdout, args.knots, roi_prior, args.draws, args.extra)
+    mmm = fit(args.holdout, args.knots, roi_prior, args.draws, args.extra, args.ar_from)
     name = f"mmm_{args.tag}" + (f"_ho{args.holdout}" if args.holdout else "")
     model.save_mmm(mmm, str(ROOT / f"outputs/{name}.pkl"))
     print(f"saved outputs/{name}.pkl")
