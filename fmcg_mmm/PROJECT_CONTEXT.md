@@ -229,3 +229,14 @@ Modelado **cerrado**. `04_diagnostics.py`, dashboard y README ya apuntan a `mmm_
 - **Pip:** pip del sistema falla (paquetes de Debian). Usar el venv.
 - **Background:** `pkill -f 03_model.py` mata el propio shell si el patrón está en el comando. Evitarlo.
 - **Gráficos:** paleta de `style.py`, una sola escala por eje.
+
+## Sesión 4b: storytelling, base vs incremental y defensa de los ROIs
+
+- **Saturación y carryover NO identificados:** posterior de `ec_m` y `alpha_m` = prior en los 6 canales (ancho post/prior 0.97–1.03). mROI ≈ 0.45×ROI es mecánico (Hill slope 1, ec≈1). Causa: TV 3 semanas a GRPs constantes, partnership 13 sem constantes, OOH 5 sem; solo DV (5×) y search (2.8×) varían. → no vender "todo saturado"; curvas de respuesta al apéndice como supuesto.
+- **Due-to año contra año** (referencia-libre, script en scratch, falta pasarlo al repo): 2022→23 −8.2% = precio −7.7, competencia −1.8, clima −1.4, media +0.5; 2023→24 +8.2% = distribución +13.3, precio −4.3, clima −1.6, competencia +1.5, media +0.7. Sin explicar ±1.1%.
+- **Techo de detectabilidad** (ruido semanal 5.3%): TV ROI 1 ⇒ +6.3%/sem en 3 sem (~2σ por punto de ROI, ~1.4σ con carryover) → ROI ≥2 se vería. Social/partnership/OOH solo ROI ≥3.
+- **Modelo sin restricciones estilo Nielsen** (`10_unconstrained.py`, OLS + AR(1) por GLS iterado, adstock/Hill por grid BIC, signos libres) → `unconstrained_roi.csv`, `unconstrained_shapes.csv`:
+  - Por canal se cancelan entre canales que salieron juntos: TV −2.2 vs partnership +3.7 (abr-23), DV −1.2 vs OOH +9.5 (lanzaron la misma semana, abr-24). Search −236 = artefacto (£29k; absorbe la caída H1-2024).
+  - Por campaña: TV+partnership 2023 **0.84** (−0.7/2.3); DV+OOH 2024 **1.13** (−0.8/3.0); social 2.2 (−1.3/5.7); **total sin search 1.26 (0.13–2.40), t 1.8**.
+  - Lectura: el ~1 del modelo final NO lo pone el prior; la data sola da ~1.2. La partición entre canales simultáneos no está identificada; la lectura defendible es por campaña/flight.
+  - Elasticidad sin restricciones −0.46 (igual al final).
