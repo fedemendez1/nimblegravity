@@ -24,11 +24,13 @@ data = {
     "signs": records("diag_coefficient_signs"),
     "conv": records("diag_convergence", "param"),
     "fit": records("diag_fit"),
+    "resid": records("diag_residual_tests"),
+    "vif": records("diag_vif", "variable"),
     "yearly": records("eda_yearly_summary"),
     "corr": records("eda_correlations", "driver"),
     "price": records("results_price_promo", "effect"),
     "curves": records("results_response_curves"),
-    "sens": {k: records(f"sens_{k}") for k in ("knots", "season", "priors")},
+    "sens": {k: records(f"sens_{k}") for k in ("knots", "season", "priors", "ar", "priors_final", "heat")},
 }
 html = TEMPLATE.read_text().replace("/*__DATA__*/null", json.dumps(data))
 OUT.write_text(html)

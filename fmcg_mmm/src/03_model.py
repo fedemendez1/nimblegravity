@@ -7,6 +7,7 @@ Usage:
     python 03_model.py --tag wide --roi-prior 0,1.5
     python 03_model.py --draws quick                # smoke test
     python 03_model.py --tag cCar --extra comp_c_promo_share --ar-from mmm_cC   # AR(1) correction
+    python 03_model.py --tag final_h22 --heat 22 --extra comp_c_promo_share --ar-from mmm_stage1 --draws screen
 """
 import argparse
 import os
@@ -85,9 +86,12 @@ if __name__ == "__main__":
     ap.add_argument("--extra", nargs="*", default=[], help="additional driver columns")
     ap.add_argument("--ar-from", help="first-stage model whose lagged residuals enter as a control")
     ap.add_argument("--no-season", action="store_true", help="drop Fourier seasonality controls")
+    ap.add_argument("--heat", type=int, help="heat_excess threshold in C (default 20)")
     args = ap.parse_args()
 
     roi_prior = tuple(float(v) for v in args.roi_prior.split(","))
+    if args.heat:
+        DRIVERS[DRIVERS.index("heat_excess")] = f"heat_excess_{args.heat}"
     if args.no_season:
         CONTROLS[:] = [c for c in CONTROLS if not c.startswith("season_")]
     mmm = fit(args.holdout, args.knots, roi_prior, args.draws, args.extra, args.ar_from)

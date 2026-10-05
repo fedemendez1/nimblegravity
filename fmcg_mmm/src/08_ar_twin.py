@@ -7,6 +7,7 @@ e_t = rho * e_{t-1} + eta_t. Used to check that the Meridian results hold once t
 Usage:
     python 08_ar_twin.py                 # AR(1) twin
     python 08_ar_twin.py --no-ar         # same model without AR (should reproduce Meridian)
+    python 08_ar_twin.py --student-t --het   # fat tails (Student-t) and noise scaling with fitted level
 """
 import argparse
 import importlib
@@ -16,6 +17,7 @@ import numpy as np
 import pandas as pd
 import pymc as pm
 import pytensor.tensor as pt
+from scipy import stats
 
 from style import ROOT, TAB
 
@@ -30,7 +32,7 @@ def acf1(x):
     return float(np.sum(x[1:] * x[:-1]) / np.sum(x * x))
 
 
-def build(df, ar=True):
+def build(df, ar=True, student_t=False, het=False):
     y = df.volume_kg.to_numpy()
     y_mu, y_sd = y.mean(), y.std()
     ys = (y - y_mu) / y_sd
@@ -55,13 +57,18 @@ def build(df, ar=True):
         tau = pm.Normal("tau", 0, 5)
         sigma = pm.HalfNormal("sigma", 5)
         mu = pm.Deterministic("mu", tau + (hill * beta).sum(1) + pt.dot(zs, gamma))
+        # noise grows with the fitted level (summer weeks are noisier in kg)
+        sd = sigma * pt.exp(pm.Normal("delta", 0, 1) * mu) if het else sigma * pt.ones(len(ys))
+        nu = pm.Gamma("nu", 2, 0.1) if student_t else None
+        lik = (lambda name, m, s, obs: pm.StudentT(name, nu=nu, mu=m, sigma=s, observed=obs)) if student_t else \
+            (lambda name, m, s, obs: pm.Normal(name, m, s, observed=obs))
         if ar:
             rho = pm.Uniform("rho", -0.99, 0.99)
             e_prev = ys[:-1] - mu[:-1]
-            pm.Normal("y0", mu[0], sigma / pt.sqrt(1 - rho ** 2), observed=ys[0])
-            pm.Normal("y", mu[1:] + rho * e_prev, sigma, observed=ys[1:])
+            lik("y0", mu[0], sd[0] / pt.sqrt(1 - rho ** 2), ys[0])
+            lik("y", mu[1:] + rho * e_prev, sd[1:], ys[1:])
         else:
-            pm.Normal("y", mu, sigma, observed=ys)
+            lik("y", mu, sd, ys)
     return mdl, dict(y_mu=y_mu, y_sd=y_sd, z=z, spend=spend, ys=ys)
 
 
@@ -74,10 +81,18 @@ def summarise(idata, info, df, label):
     mu = post.mu.mean(("chain", "draw")).values
     resid = info["ys"] - mu
     innov = resid[1:] - float(post.rho.mean()) * resid[:-1] if "rho" in post else resid
+    # standardised innovations: should look normal-ish and homoskedastic if the noise model is right
+    scale = np.exp(float(post.delta.mean()) * mu) if "delta" in post else np.ones_like(mu)
+    z = innov / scale[-len(innov):]
+    bp = stats.linregress(mu[-len(z):], np.abs(z - z.mean()))
     q = lambda v: f"{np.median(v):.2f} ({np.quantile(v, .05):.2f} / {np.quantile(v, .95):.2f})"
     row = {"model": label, "price_elasticity": q(el), "roi_total": q(roi_tot),
            "rho": q(post.rho.values.ravel()) if "rho" in post else "",
            "resid_acf1": round(acf1(resid), 3), "innovation_acf1": round(acf1(innov), 3),
+           "nu": q(post.nu.values.ravel()) if "nu" in post else "",
+           "delta": q(post.delta.values.ravel()) if "delta" in post else "",
+           "excess_kurtosis": round(float(stats.kurtosis(z)), 2), "jarque_bera_p": round(float(stats.jarque_bera(z).pvalue), 4),
+           "abs_resid_vs_level_p": round(float(bp.pvalue), 3),
            "max_rhat": round(float(az.rhat(post[["roi", "gamma", "sigma"]]).max().to_array().max()), 3),
            "divergences": int(idata.sample_stats.diverging.sum())}
     row.update({f"roi_{c}": round(float(np.median(roi[:, i])), 2) for i, c in enumerate(CHANNELS)})
@@ -88,12 +103,14 @@ def summarise(idata, info, df, label):
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--no-ar", action="store_true")
+    ap.add_argument("--student-t", action="store_true")
+    ap.add_argument("--het", action="store_true")
     ap.add_argument("--draws", type=int, default=1000)
     args = ap.parse_args()
 
     df = pd.read_csv(ROOT / "data/clean/model_data.csv")
-    label = "twin_noar" if args.no_ar else "twin_ar1"
-    mdl, info = build(df, ar=not args.no_ar)
+    label = ("twin_noar" if args.no_ar else "twin_ar1") + ("_t" if args.student_t else "") + ("_het" if args.het else "")
+    mdl, info = build(df, ar=not args.no_ar, student_t=args.student_t, het=args.het)
     with mdl:
         idata = pm.sample(args.draws, tune=1000, chains=4, cores=4, target_accept=0.9, random_seed=42)
     idata.to_netcdf(ROOT / f"outputs/{label}.nc")

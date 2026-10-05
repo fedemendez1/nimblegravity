@@ -1,13 +1,22 @@
 model,metric,geo_granularity,value,evaluation_set
-mmm_base,R_Squared,national,0.914,
-mmm_base,MAPE,national,0.044,
-mmm_base,wMAPE,national,0.045,
-mmm_base_ho13,R_Squared,national,0.915,Train
-mmm_base_ho13,R_Squared,national,0.653,Test
-mmm_base_ho13,R_Squared,national,0.914,All Data
-mmm_base_ho13,MAPE,national,0.045,Train
-mmm_base_ho13,MAPE,national,0.04,Test
-mmm_base_ho13,MAPE,national,0.044,All Data
-mmm_base_ho13,wMAPE,national,0.046,Train
-mmm_base_ho13,wMAPE,national,0.039,Test
-mmm_base_ho13,wMAPE,national,0.045,All Data
+mmm_final,R_Squared,national,0.93,
+mmm_final,MAPE,national,0.04,
+mmm_final,wMAPE,national,0.041,
+mmm_final_ho26,R_Squared,national,0.93,Train
+mmm_final_ho26,R_Squared,national,0.912,Test
+mmm_final_ho26,R_Squared,national,0.928,All Data
+mmm_final_ho26,MAPE,national,0.041,Train
+mmm_final_ho26,MAPE,national,0.046,Test
+mmm_final_ho26,MAPE,national,0.042,All Data
+mmm_final_ho26,wMAPE,national,0.042,Train
+mmm_final_ho26,wMAPE,national,0.047,Test
+mmm_final_ho26,wMAPE,national,0.043,All Data
+mmm_final_ho13,R_Squared,national,0.93,Train
+mmm_final_ho13,R_Squared,national,0.673,Test
+mmm_final_ho13,R_Squared,national,0.929,All Data
+mmm_final_ho13,MAPE,national,0.041,Train
+mmm_final_ho13,MAPE,national,0.038,Test
+mmm_final_ho13,MAPE,national,0.041,All Data
+mmm_final_ho13,wMAPE,national,0.042,Train
+mmm_final_ho13,wMAPE,national,0.037,Test
+mmm_final_ho13,wMAPE,national,0.042,All Data

@@ -97,9 +97,9 @@ td:first-child { font-family: var(--f-body); }
 
   <section class="panel" id="sensPanel">
     <div class="panel-head">
-      <h2>Sensitivity: knots and ROI priors</h2>
+      <h2>Sensitivity: baseline, residual persistence, ROI priors and heat threshold</h2>
       <p class="sub">Same data, different assumptions. Stable ROIs across rows mean the result does not hinge on the assumption.</p>
-      <p class="note">knots · k1/k6/k12: flat vs time-varying baseline (before seasonality terms). season · f1: k1 + annual Fourier terms (chosen base). priors · ROI ~ LogNormal: f1 = median 1, σ 0.7 · wide = σ 1.5 · tight = σ 0.35 · high = median 2, σ 0.7. Prior variants use shorter chains, no holdout.</p>
+      <p class="note">knots · k1/k6/k12: flat vs time-varying baseline (before seasonality terms). season · f1: k1 + annual Fourier terms (chosen base). priors · ROI ~ LogNormal: f1 = median 1, σ 0.7 · wide = σ 1.5 · tight = σ 0.35 · high = median 2, σ 0.7. Prior variants use shorter chains, no holdout.<br>ar · f1 → cC (+ brand C promo) → cCar (+ AR(1) correction). final priors / heat · final model (brand C promo + AR(1)) under the same ROI prior variants, and heat_excess measured above 18/22/24°C instead of 20°C.</p>
     </div>
     <div class="tbl" id="sensTable"></div>
   </section>
@@ -124,9 +124,11 @@ td:first-child { font-family: var(--f-body); }
     <section class="panel">
       <div class="panel-head">
         <h2>Model health</h2>
-        <p class="sub">Fit in and out of sample (last 13 weeks held out) and MCMC convergence.</p>
+        <p class="sub">Fit in and out of sample (last 26 weeks held out), residual tests, collinearity (VIF) and MCMC convergence.</p>
       </div>
       <div class="tbl" id="fitTable"></div>
+      <div class="tbl" id="residTable"></div>
+      <div class="tbl" id="vifTable"></div>
       <div class="tbl" id="convTable"></div>
     </section>
   </div>
@@ -149,7 +151,7 @@ const CH = ["tv", "digital_video", "social", "partnership", "ooh", "search_rdm"]
 const LABEL = { tv: "TV (GRPs)", digital_video: "Digital video (VOD+OLV)", social: "Social", partnership: "Online partnership", ooh: "Out of home",
   search_rdm: "Search + retail digital", temp_avg: "Avg temperature", heat_excess: "Heat above 20°C max",
   distribution: "Distribution (ACV)", rel_base_price: "Price vs competitors", log_rel_price: "Price premium (log)", promo_distribution: "Promo breadth", promo_intensity: "Promo intensity",
-  comp_media_spend: "Competitor media", rainfall: "Rainfall", new_year_week: "New Year week", baseline: "Baseline",
+  comp_media_spend: "Competitor media", comp_c_promo_share: "Brand C promo share", resid_lag1: "AR(1) term (last week's residual)", rainfall: "Rainfall", new_year_week: "New Year week", baseline: "Baseline",
   promo_depth: "Promo depth" };
 const lab = k => LABEL[k] || k.replace(/^spend_/, "").replace(/_/g, " ");
 const col = k => CH.includes(k) ? `var(--c-${k})` : "var(--c-driver)";
@@ -174,13 +176,13 @@ function axis(svg, x, lo, hi, top, bottom, fmt = v => v) {
 
 /* Tiles */
 (() => {
-  const fit = D.fit, get = (m, set) => (fit.find(r => r.metric === m && (set ? r.evaluation_set === set : !r.evaluation_set)) || {}).value;
+  const fit = D.fit, get = (m, set) => (fit.find(r => r.metric === m && (set ? r.evaluation_set === set && r.model.endsWith("_ho26") : !r.evaluation_set)) || {}).value;
   const all = D.roi.find(r => r.channel === "All Channels");
   const media = D.contrib.filter(r => CH.includes(r.channel)).reduce((s, r) => s + r.mean, 0);
   const rhat = Math.max(...D.conv.map(r => r.max_rhat));
   const tiles = [
     ["In-sample R²", f(get("R_Squared"), 2), `MAPE ${f(100 * get("MAPE"), 1)}%`],
-    ["Holdout MAPE", get("MAPE", "Test") != null ? f(100 * get("MAPE", "Test"), 1) + "%" : "–", "last 13 weeks"],
+    ["Holdout MAPE", get("MAPE", "Test") != null ? f(100 * get("MAPE", "Test"), 1) + "%" : "–", `last 26 weeks · R² ${f(get("R_Squared", "Test"))}`],
     ["Max R-hat", f(rhat, 3), rhat < 1.01 ? "converged" : "check chains"],
     ["Blended media ROI", f(all.roi_post_median), `90%: ${f(all.roi_post_lo)} – ${f(all.roi_post_hi)}`],
     ["Media share of volume", f(media, 1) + "%", `£${f(all.spend_k / 1000, 1)}m spend`],
@@ -258,6 +260,13 @@ function axis(svg, x, lo, hi, top, bottom, fmt = v => v) {
   const val = (s, m) => (D.fit.find(r => (r.evaluation_set ? `${r.model} · ${r.evaluation_set}` : r.model) === s && r.metric === m) || {}).value;
   document.getElementById("fitTable").innerHTML = `<table><thead><tr><th>Model · sample</th><th>R²</th><th>MAPE</th><th>wMAPE</th></tr></thead><tbody>${
     sets.map(s => `<tr><td>${s.replace("mmm_", "")}</td><td>${f(val(s, "R_Squared"))}</td><td>${f(100 * val(s, "MAPE"), 1)}%</td><td>${f(100 * val(s, "wMAPE"), 1)}%</td></tr>`).join("")}</tbody></table>`;
+  const tname = { ljung_box_lag1: "Ljung-Box, lag 1", ljung_box_lag4: "Ljung-Box, lags 1–4", ljung_box_lag13: "Ljung-Box, lags 1–13",
+    ljung_box_lag26: "Ljung-Box, lags 1–26", jarque_bera: "Jarque-Bera (normality)", breusch_pagan_kg: "Breusch-Pagan, kg (constant variance)",
+    breusch_pagan_pct: "Breusch-Pagan, % error" };
+  document.getElementById("residTable").innerHTML = `<table><thead><tr><th>Residual test</th><th>Statistic</th><th>p-value</th><th></th></tr></thead><tbody>${
+    D.resid.map(r => `<tr><td>${tname[r.test] || r.test}</td><td>${f(r.stat, 1)}</td><td>${f(r.p_value, 3)}</td><td>${r.p_value > 0.05 ? chip("ok", "pass") : r.p_value > 0.01 ? chip("warn", "borderline") : chip("warn", "fails")}</td></tr>`).join("")}</tbody></table>`;
+  document.getElementById("vifTable").innerHTML = `<table><thead><tr><th>Regressor</th><th>VIF</th><th></th></tr></thead><tbody>${
+    D.vif.map(r => `<tr><td>${lab(r.variable)}</td><td>${f(r.vif, 1)}</td><td>${r.vif < 5 ? chip("ok", "low") : r.vif < 10 ? chip("warn", "moderate") : chip("bad", "high")}</td></tr>`).join("")}</tbody></table>`;
   document.getElementById("convTable").innerHTML = `<table><thead><tr><th>Parameter</th><th>Max R-hat</th><th>Min ESS</th><th></th></tr></thead><tbody>${
     D.conv.map(r => `<tr><td>${r.param}</td><td>${f(r.max_rhat, 3)}</td><td>${f(r.min_ess_bulk, 0)}</td><td>${r.max_rhat < 1.01 && r.min_ess_bulk > 400 ? chip("ok", "ok") : chip("bad", "check")}</td></tr>`).join("")}</tbody></table>`;
 })();
@@ -298,11 +307,11 @@ function axis(svg, x, lo, hi, top, bottom, fmt = v => v) {
 
 /* Sensitivity */
 (() => {
-  const rows = ["knots", "season", "priors"].flatMap(k => D.sens[k].map(r => ({ ...r, set: k })));
+  const rows = ["knots", "season", "priors", "ar", "priors_final", "heat"].flatMap(k => D.sens[k].map(r => ({ ...r, set: k })));
   if (!rows.length) { document.getElementById("sensPanel").hidden = true; return; }
   const cell = (r, c) => `${f(r["roi_" + c])}<span class="note"> ${f(r["roi_lo_" + c], 1)}–${f(r["roi_hi_" + c], 1)}</span>`;
   document.getElementById("sensTable").innerHTML = `<table><thead><tr><th>Variant</th><th>R²</th><th>Holdout MAPE</th><th>Resid. ACF(1)</th><th>Price el.</th><th>All media ROI</th>${CH.map(c => `<th>${lab(c)}</th>`).join("")}</tr></thead><tbody>${
-    rows.map(r => `<tr><td>${r.set} · ${r.tag}</td><td>${f(r.r2)}</td><td>${r.holdout_mape == null ? "–" : f(100 * r.holdout_mape, 1) + "%"}</td><td>${f(r.acf_lag1)}</td><td>${f(r.price_elasticity)}</td><td>${cell(r, "All Channels")}</td>${CH.map(c => `<td>${cell(r, c)}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+    rows.map(r => `<tr><td>${r.set.replace("_", " ")} · ${r.tag}</td><td>${f(r.r2)}</td><td>${r.holdout_mape == null ? "–" : f(100 * r.holdout_mape, 1) + "%"}</td><td>${f(r.acf_lag1)}</td><td>${f(r.price_elasticity)}</td><td>${cell(r, "All Channels")}</td>${CH.map(c => `<td>${cell(r, c)}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
 })();
 
 /* Data overview */

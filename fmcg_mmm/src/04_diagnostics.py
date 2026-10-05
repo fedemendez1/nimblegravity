@@ -2,7 +2,7 @@
 
 Usage:
     python 04_diagnostics.py                  # outputs/mmm_base.pkl (+ mmm_base_ho13.pkl if present)
-    python 04_diagnostics.py --model mmm_k6
+    python 04_diagnostics.py --model mmm_final   # + mmm_final_ho26 / _ho13 if present
 """
 import argparse
 import os
@@ -18,6 +18,7 @@ import numpy as np
 import pandas as pd
 from meridian.analysis import analyzer
 from meridian.model import model
+from scipy import stats
 
 from style import CHANNEL_COLORS, GRID, INK_2, ROOT, SERIES, TAB, save
 
@@ -61,6 +62,7 @@ def fitted(a):
 
 def fitted_vs_actual(a, times):
     exp, act, e = fitted(a)
+    residual_tests(act - exp, exp)
     lo, hi = e.expected.sel(metric="ci_lo").values, e.expected.sel(metric="ci_hi").values
     resid = act - exp
 
@@ -79,6 +81,39 @@ def fitted_vs_actual(a, times):
     acf = residual_acf(resid)
     print("residual ACF:", {k: round(v, 2) for k, v in acf.items()})
     return acf
+
+
+def vif(mmm):
+    """VIF of every regressor (drivers, controls, media exposure): diagonal of the inverse correlation matrix."""
+    d = mmm.input_data
+    x = pd.concat([d.non_media_treatments.sel(geo="national_geo").to_pandas(),
+                   d.controls.sel(geo="national_geo").to_pandas(),
+                   d.media.sel(geo="national_geo").isel(media_time=slice(-len(d.time), None)).to_pandas()
+                   .set_axis(d.time.values)], axis=1)
+    out = pd.Series(np.diag(np.linalg.inv(np.corrcoef(x.to_numpy(float), rowvar=False))), index=x.columns, name="vif")
+    out.sort_values(ascending=False).round(2).to_csv(TAB / "diag_vif.csv")
+    print(out.sort_values(ascending=False).round(2).to_string())
+    return out
+
+
+def residual_tests(resid, fit):
+    """Ljung-Box (no autocorrelation), Jarque-Bera (normality), Breusch-Pagan vs fitted (constant variance)."""
+    n, r = len(resid), resid - resid.mean()
+    acf = np.array([np.sum(r[k:] * r[:-k]) / np.sum(r * r) for k in range(1, 27)])
+    rows = [{"test": f"ljung_box_lag{h}", "stat": n * (n + 2) * np.sum(acf[:h] ** 2 / (n - np.arange(1, h + 1))),
+             "df": h} for h in (1, 4, 13, 26)]
+    for row in rows:
+        row["p_value"] = stats.chi2.sf(row["stat"], row["df"])
+    jb = stats.jarque_bera(resid)
+    rows.append({"test": "jarque_bera", "stat": jb.statistic, "p_value": jb.pvalue,
+                 "excess_kurtosis": stats.kurtosis(resid), "skew": stats.skew(resid)})
+    for label, e in (("kg", resid), ("pct", resid / fit)):
+        lm = n * stats.linregress(fit, e ** 2).rvalue ** 2
+        rows.append({"test": f"breusch_pagan_{label}", "stat": lm, "df": 1, "p_value": stats.chi2.sf(lm, 1)})
+    out = pd.DataFrame(rows)
+    out.round(4).to_csv(TAB / "diag_residual_tests.csv", index=False)
+    print(out.round(3).to_string(index=False))
+    return out
 
 
 def coefficient_signs(mmm):
@@ -219,13 +254,14 @@ if __name__ == "__main__":
     print("== convergence"); convergence(mmm)
     print("== fit")
     acc = [fit_quality(a, args.model)]
-    ho = f"{args.model}_ho13"
-    if (ROOT / f"outputs/{ho}.pkl").exists():
-        acc.append(fit_quality(analyzer.Analyzer(load(ho)), ho))
+    for ho in (f"{args.model}_ho26", f"{args.model}_ho13"):
+        if (ROOT / f"outputs/{ho}.pkl").exists():
+            acc.append(fit_quality(analyzer.Analyzer(load(ho)), ho))
     acc = pd.concat(acc)
     acc.round(3).to_csv(TAB / "diag_fit.csv", index=False)
     print(acc.round(3).to_string(index=False))
     fitted_vs_actual(a, times)
+    print("== VIF"); vif(mmm)
     print("== coefficient signs"); coefficient_signs(mmm)
     print("== price & promo"); price_promo_effects(mmm)
     print("== media ROI"); media_results(a)

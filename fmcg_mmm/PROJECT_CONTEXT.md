@@ -21,7 +21,7 @@ Archivo para retomar el trabajo en una sesión nueva. Leer junto con `README.md`
 
 ## Dónde está todo
 
-- **Repo:** `fedemendez1/nimblegravity`, carpeta `fmcg_mmm/`. **Branch vigente: `claude/sharp-lamport-uc26sg`** (parte de `claude/friendly-gates-a0mnhs` + sesión 2 de modelado). Leer siempre la más reciente.
+- **Repo:** `fedemendez1/nimblegravity`, carpeta `fmcg_mmm/`. **Branch vigente: `claude/friendly-goldberg-x46lp2`** (sesión 4; contiene todo lo de `claude/great-rubin-edkjpe`). Leer siempre la más reciente.
 - **Dashboard (artifact privado):** https://claude.ai/artifact/5Z4CppFB4yJPW2MYC4xThA. Se regenera con `python src/05_dashboard.py` y se republica desde `outputs/dashboard.html`.
 - **Entorno:** `.venv` en la raíz del repo (no versionado). `pip install -r fmcg_mmm/requirements.txt` (Meridian 2.1.0). Correr los scripts desde `fmcg_mmm/src`.
 - **Modelos:** `*.pkl` está en `.gitignore`, pero **desde la sesión 2 se versionan con `git add -f`** (~3 MB c/u) para no volver a correrlos. En el repo: `mmm_f1.pkl` (base, screen), `mmm_cC.pkl`, `mmm_cCA.pkl`. El base con cadenas completas (`mmm_base.pkl`, `_ho13`) NO está guardado: regenerar con `03_model.py` (~12 min) y `--holdout 13`.
@@ -195,9 +195,24 @@ R² idéntico (0.929–0.930), elasticidad −0.46/−0.48 en todas. Lectura: ca
 4. Después: correr el final con cadenas completas + holdout 13, `04_diagnostics.py`, `07_residuals.py`, `05_dashboard.py`, actualizar README. Recién ahí storytelling.
 5. Otras decisiones abiertas (de la sesión 2, aún sin discutir): ROI por canal vs. solo total (canales no identificados; ¿agrupar en 2–3?); mostrar o no curvas de respuesta (dependen del prior); promo propia ≈0; base de contribuciones (vs. mínimo observado → base 71%; agrupar estilo Nielsen base = fondo + precio + distribución + clima); umbral 20°C de heat_excess sin sensibilidad.
 
+## Sesión 4 de modelado (5-oct-2026): VIF, colas, heterocedasticidad, umbral de calor
+
+Modelado **cerrado**. `04_diagnostics.py`, dashboard y README ya apuntan a `mmm_final` (holdout 26 sem en tile).
+
+- **Tests nuevos en `04_diagnostics.py`** → `diag_residual_tests.csv`, `diag_vif.csv` (también en el dashboard, panel Model health).
+  - Ljung-Box p 0.76 / 0.67 / 0.80 / 0.32 (lags 1/4/13/26): autocorrelación resuelta.
+  - VIF máx 8.7 (`temp_avg`, por `season_cos` −0.81 y `heat_excess` 0.74). Precio 3.4, distribución 3.2, media 1.5–3.1. Canales no identificados por señal chica, **no** por colinealidad.
+  - Jarque-Bera p<0.001 (curtosis exceso 2.0; 3 semanas de calor ±13%: jul-22, ago-22, jun-23). Breusch-Pagan p<0.001 en kg, 0.02 en %.
+- **Colas + heterocedasticidad: misma causa** (el ruido crece con el nivel de ventas; verano más ruidoso en kg). Gemelo PyMC (`08_ar_twin.py --het`, σ_t = σ·exp(δ·μ_t), δ 0.55): residuos estandarizados normales y homocedásticos (JB p 0.15, BP p 0.20, curtosis 0.66). Student-t sola NO lo arregla (ν 2.8, curtosis 4.7); t + het: ν 7.7, JB p 0.05.
+  - Conclusiones: elasticidad −0.41 (−0.53/−0.30) con het vs −0.47; t −0.49; t+het −0.45. ROI total 1.06–1.15. → robusto; caveat de apéndice, no se cambia el modelo (Meridian no soporta ni t ni varianza variable).
+  - Con het ρ sube a 0.58 e innovaciones ACF −0.16 (leve sobrecorrección).
+- **Umbral de `heat_excess`** (`--heat 18/22/24`, screen, AR lag de `mmm_stage1` con 20°C) → `sens_heat.csv`: R² 0.924/0.930/0.932/0.927 (18/20/22/24), elasticidad −0.46/−0.47/−0.47/−0.50, ROI total 1.15/1.06/1.03/1.11. TV último y OOH primero en todos. 24°C normaliza residuos (JB p 0.44) pero empeora MAPE (4.5%) y ACF (0.08). **Se queda 20°C.**
+- Veredicto: estadísticamente sólido para drivers, elasticidad y ROI total; no para rankear canales (limitación de data).
+
 ## Pendiente / próximos pasos
 
-1. **Storytelling y presentación** (después de cerrar el modelado, ver arriba): 5–6 slides, 15–20 min, client-facing, con respaldo técnico (appendix).
+0. Republicar el dashboard (artifact) con `outputs/dashboard.html` regenerado en sesión 4.
+1. **Storytelling y presentación** (modelado cerrado en sesión 4): 5–6 slides, 15–20 min, client-facing, con respaldo técnico (appendix).
    - Mensajes y orden a definir con el usuario.
    - Usar los gráficos de `outputs/figures` o el dashboard.
 2. **Sección "With more time"** (ya en el README):

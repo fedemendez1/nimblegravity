@@ -75,6 +75,9 @@ def build(df):
         "new_year_week": (((df["Date"].dt.month == 12) & (df["Date"].dt.day >= 27))
                           | ((df["Date"].dt.month == 1) & (df["Date"].dt.day <= 2))).astype(int),
     })
+    # threshold sensitivity for heat_excess
+    for t in (18, 22, 24):
+        out[f"heat_excess_{t}"] = (df["weather_max_temp"] - t).clip(lower=0)
     for grp, (chs, exe) in CHANNEL_GROUPS.items():
         for ch in chs:
             out[f"raw_spend_{ch}"] = df[f"Media_{ch}_Spends"]
