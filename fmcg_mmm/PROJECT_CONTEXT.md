@@ -209,10 +209,38 @@ Modelado **cerrado**. `04_diagnostics.py`, dashboard y README ya apuntan a `mmm_
 - **Umbral de `heat_excess`** (`--heat 18/22/24`, screen, AR lag de `mmm_stage1` con 20°C) → `sens_heat.csv`: R² 0.924/0.930/0.932/0.927 (18/20/22/24), elasticidad −0.46/−0.47/−0.47/−0.50, ROI total 1.15/1.06/1.03/1.11. TV último y OOH primero en todos. 24°C normaliza residuos (JB p 0.44) pero empeora MAPE (4.5%) y ACF (0.08). **Se queda 20°C.**
 - Veredicto: estadísticamente sólido para drivers, elasticidad y ROI total; no para rankear canales (limitación de data).
 
+## Sesión 4c: storytelling, MVP del deck (5-oct-2026)
+
+**Modelo CERRADO** (decisión del usuario). Ahora solo storytelling.
+
+### Guidelines del usuario para la presentación (respetar siempre)
+- Director frente al cliente. Historia clara de cómo evolucionó la marca; **nada de ramas técnicas** en el cuerpo.
+- **Menos es más:** poco texto, bullets claros, muy visual (waterfalls, big numbers). Yo tiendo a escribir de más: recortar.
+- **So what** en cada slide: el cliente quiere un plan de marca accionable para maximizar revenue en TODO lo que controla (precio, promo, distribución, ejecución, media), con sentido común (nada de "subí distribución al 100%").
+- Apéndice: slide de **model performance muy visual** (real vs modelo + residuos), da confianza sin entrar en detalle.
+- Historia acordada: **producto poco dependiente de media**; palancas reales = precio y distribución.
+
+### Deck (artifact Slides, privado)
+- **URL:** https://claude.ai/artifact/Hr4ZPiahCBL7Jx26wFT2HG (título "Bottled Water Brand Review"). Copia de las fuentes en `fmcg_mmm/deck/project/` (deck.json + slides/*.html). Para editar en otra sesión: leer el artifact (`read` con `path` del slide) antes de republicar; republicar con `url` + `root` apuntando a una carpeta con `project/...`.
+- En inglés (cliente UK). Fuentes: Domine (títulos) + DM Sans. Paleta: navy #14213D, fondo #F6F7F4, azul #2A6FDB, naranja negativo #D9662B/#B4501C.
+- Slides: 1 cover · 2 growth (revenue +32% con volumen plano; precio/kg £0.76→£1.00, premium 1.5×→1.9×, distribución 39→43%) · 3 dueto (waterfall 2022→23→24: precio −12.8 / −6.6m kg, distribución −0.4 / +20.4, media+promo +1.8 / +1.6, otros −2.3 / −2.7) · 4 price (+10% premium → −4.5% vol → +5% revenue; ya estamos a 1.9× → subas en pasos chicos) · 5 volume (+3.6% vol por punto de distribución; +4% por °C sobre 20°C) · 6 promomedia (1 de cada 3 kg en promo, sin lift medible; media £1.06 por £1, 2024 £1.10 vs 2023 £0.86) · 7 plan (5 moves: precio, promo, distribución, verano, media) · Apéndice: 8 fit (real vs modelo + residuos, 93% / ±4% / 4.6% holdout) · 9 mediaroi (ROI por campaña con rangos 90%).
+- Speaker notes con los caveats en cada slide.
+
+### Números (todos desde `mmm_final`, script `src/11_story.py`)
+- `story_campaign_roi.csv`: TV+partnership 0.86 (0.42–1.58), video+OOH 1.10 (0.49–2.19), social 0.98 (0.32–2.60), total 1.06 (0.65–1.66).
+- `story_due_to.csv`: año contra año por driver (con 90%). `story_effects.csv`: efectos por unidad + hechos por año. `story_fit.csv`: real vs modelo semanal.
+
+### Para iterar mañana (abierto)
+1. Revisión del usuario slide por slide (espera iterar mucho).
+2. ¿Dimensionar el plan? (p. ej. cuánto revenue vale +1 pt de distribución o −X pp de promo). Hoy solo dirección; no inventar números sin modelo.
+3. Promo: el insight "sin lift medible" se apoya en `promo_intensity` ≈ 0 (90%: −2% a +5% por +10pp). Confirmar con el usuario cómo lo quiere decir (no hay márgenes).
+4. Waterfall: eje truncado en 140m kg (anotado en el footer); decidir si se prefiere en %.
+5. Republicar dashboard si cambia algo del modelo (no debería).
+
 ## Pendiente / próximos pasos
 
 0. Republicar el dashboard (artifact) con `outputs/dashboard.html` regenerado en sesión 4.
-1. **Storytelling y presentación** (modelado cerrado en sesión 4): 5–6 slides, 15–20 min, client-facing, con respaldo técnico (appendix).
+1. **Storytelling y presentación**: MVP del deck hecho en sesión 4c (ver arriba); iterar con el usuario: 5–6 slides, 15–20 min, client-facing, con respaldo técnico (appendix).
    - Mensajes y orden a definir con el usuario.
    - Usar los gráficos de `outputs/figures` o el dashboard.
 2. **Sección "With more time"** (ya en el README):
