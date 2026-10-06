@@ -1,0 +1,16 @@
+model,segment,elasticity,lo,hi,weeks
+single,all weeks,-0.493,-0.63,-0.356,161
+piecewise 1.7x,premium < 1.7x,-0.64,-0.83,-0.45,61
+piecewise 1.7x,premium > 1.7x,-0.775,-1.084,-0.467,100
+piecewise 1.7x,difference (high - low),-0.135,-0.466,0.195,161
+piecewise 1.8x,premium < 1.8x,-0.579,-0.72,-0.437,81
+piecewise 1.8x,premium > 1.8x,-0.476,-0.867,-0.085,80
+piecewise 1.8x,difference (high - low),0.103,-0.283,0.488,161
+piecewise 1.9x,premium < 1.9x,-0.522,-0.653,-0.39,113
+piecewise 1.9x,premium > 1.9x,-0.292,-0.848,0.263,48
+piecewise 1.9x,difference (high - low),0.229,-0.313,0.771,161
+quadratic,at 1.4x,-0.693,-0.957,-0.428,161
+quadratic,at 1.6x,-0.502,-0.638,-0.366,161
+quadratic,at 1.8x,-0.333,-0.556,-0.111,161
+quadratic,at 1.95x,-0.219,-0.553,0.115,161
+quadratic,at 2.1x,-0.113,-0.559,0.333,161
