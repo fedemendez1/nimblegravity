@@ -2,13 +2,40 @@
 
 Archivo para retomar el trabajo en una sesión nueva. **Leer primero "Estado actual"**; el resto es historia de decisiones (la información de sesiones anteriores que quedó superada está marcada). `README.md` tiene la definición del modelo y resultados en inglés.
 
-## ESTADO ACTUAL (6-oct-2026) — leer primero
+## CÓMO RETOMAR (para Claude en una sesión nueva)
 
-- **Fase:** modelado **CERRADO** (decisión del usuario). Estamos en **storytelling**: hay un MVP del deck para iterar slide por slide con el usuario.
-- **Branch vigente:** `claude/upbeat-davinci-5zpud1` (sesión 5; contiene todo lo de `friendly-goldberg`). Ver "Sesión 5".
-- **Deck (artifact Slides, privado):** https://claude.ai/artifact/Hr4ZPiahCBL7Jx26wFT2HG · fuentes en `fmcg_mmm/deck/project/`. Detalle en "Sesión 4c".
-- **Dashboard técnico (artifact privado):** https://claude.ai/artifact/5Z4CppFB4yJPW2MYC4xThA · ya republicado con el modelo final (sesión 4).
-- **Modelo final = `mmm_final`:** drivers base + promo de la marca C + corrección AR(1) (2 etapas: `mmm_stage1` → `mmm_final`). Holdout reportado: 26 semanas.
+1. Las sesiones nuevas arrancan en `main`, que **no** tiene este proyecto. Hacer: `git fetch origin && git checkout claude/upbeat-davinci-5zpud1` (o la branch `claude/*` con el commit más reciente que tenga `fmcg_mmm/PROJECT_CONTEXT.md`: `for b in $(git branch -r); do git log -1 --format="%ci $b" $b; done | sort`). Trabajar en la branch que asigne la sesión, trayendo esta con `git merge --ff-only` / merge.
+2. Leer este archivo completo ("Estado actual" primero).
+3. Deck: leerlo con la tool Artifact (`action: read`, `url` del deck, `path: project/deck.json` y los `project/slides/*.html` que se vayan a tocar). Las copias en `fmcg_mmm/deck/project/` están sincronizadas al cierre de la sesión 5, pero el usuario puede editar a mano en el artifact: **la verdad es el artifact**.
+4. Para correr scripts: `python3 -m venv .venv && .venv/bin/pip install -r fmcg_mmm/requirements.txt` (~3 min, Meridian) desde la raíz; correr desde `fmcg_mmm/src`.
+5. El usuario itera dejando comentarios en el artifact (llegan como "[Artifact comment sent to Claude]"): responder en el hilo con `ArtifactComments` (reply + resolve), en el chat solo una línea.
+
+## ESTADO ACTUAL (fin sesión 5, 6-oct-2026) — leer primero
+
+- **Fase:** modelado CERRADO. Deck casi final; mañana se "liquida" (pulido final). Presentación 15–20 min, máx. **6 slides de contenido** + apéndice.
+- **Branch:** `claude/upbeat-davinci-5zpud1` (todo pusheado).
+- **Deck (artifact Slides, privado):** https://claude.ai/artifact/Hr4ZPiahCBL7Jx26wFT2HG ("Bottled Water Brand Review", 12 slides). Fuentes: `fmcg_mmm/deck/project/` (deck.json + `slides/<id>.html`). Generadores de las slides con gráficos: `deck/make_bridge.py` (due-to, lee `outputs/tables/story_due_to_regressors.csv`), `deck/make_media_timeline.py` (timeline de media).
+- **Dashboard técnico (artifact privado):** https://claude.ai/artifact/5Z4CppFB4yJPW2MYC4xThA (sin cambios desde sesión 4).
+- **Modelo final = `mmm_final`** (Meridian 2.1, aditivo en kg; drivers base + promo marca C + corrección AR(1) en 2 etapas). Holdout 26 sem.
+
+### Estructura actual del deck (orden en deck.json)
+| id | Slide | Mensaje / números |
+|---|---|---|
+| cover | Portada | "Three years, flat volume" · "Price took volume, distribution gave it back. Three moves to grow from here." |
+| dueto | Volume due-to | Dos paneles en **puntos % de volumen semanal promedio** (2022 tiene 53 semanas → se usa promedio semanal). 2023 vs 2022 **−6.4%**: precio relativo −8.2, promos marca C −1.9, calor −0.6, distribución +2.4, nuestras promos +0.6, media +0.5, otros +0.7. 2024 vs 2023 **+8.2%**: distribución +13.3, marca C +1.7, media +0.6, promos +0.3, calor −1.6, precio −4.3, otros −1.7. Neto 2 años +1.3%. Base vs incremental separados (línea punteada). |
+| levers | Cuánto vale cada palanca | Distribución +1 pt = **£6m/año** · media £1 → £1.06 · precio +1% vs competencia = +£0.8m · descuento £1 → £0.13 |
+| promomedia | 1. Cut discounts | Solo promos (usuario pidió NO mezclar con precio): 1 de cada 3 kg en promo (1 de 6 en 2022) · £15m de descuento 2024 (£3m en 2022) · Promotion ROI 0.13 · "Scale back to 2022 levels, deepest first: +£6–10m a year" (directo, sin trial) |
+| volume | 2. Defend distribution | Caída H2-2022 (41%→37%) costó **£10m** en 6 meses · gráfico trimestral · "weekly #1 KPI, hold 46% all year: ~£14m more than 2024" |
+| media | 3. Re-time media | Timeline "As run 2022–24 (one calendar)" vs "Proposed" + card "What changes": 80% en may–ago en pulsos de 3 semanas escalonados por canal · 20% always-on (video online + outdoor a bajo peso, sep–abr; search todo el año como captura de demanda, NO como marca) · digital outdoor pre-reservado, sale solo si pronóstico >25°C · "Early read: +£0.5–1m a year, every channel measurable with regional holdouts" |
+| plan | Plan | "Three moves worth £20m+ a year": promos +£6–10m, distribución +£14m, media +£0.5–1m · Next: geo lift media, test de precio con 1 retailer |
+| fit, mediaroi, price, weather, growth | Apéndice | ajuste del modelo, ROI por campaña, elasticidad (−0.5, "hold the gap, test +5–8% at one retailer 12–16 wks"), clima (+4%/°C, 19 sem/año >20°C, +44% semana 34°C), hechos (revenue/precio) |
+
+### Abierto para mañana
+1. **"£20m+" (portada vieja / plan):** el usuario preguntó de dónde sale (hilo respondido, abierto): 6–10 + 14 + 0.5–1. Más de la mitad es distribución (supuesto de sostener 46%, causalidad en ambos sentidos). Propuse versión conservadora: "£6–11m a year, plus £6m for every point of distribution we hold". Pendiente decisión. La portada ya no dice £20m; el plan sí.
+2. Revisar render visual de todas las slides (nunca se verificó con screenshot; labels rotados del due-to, timeline de media).
+3. Hilo abierto en slide de media: ¿número de media o "upside to be measured"? (la estimación es ~1σ).
+4. Apéndice: limpiar/ordenar (price/weather/growth vienen de versiones anteriores; growth habla de revenue +32% → ok solo como dato; quizá agregar curvas de respuesta "assumed shape" y el due-to por canal de media).
+5. Speaker notes: revisar coherencia final de números entre slides.
 
 ### Números vigentes (modelo final)
 | Qué | Valor |
@@ -17,40 +44,32 @@ Archivo para retomar el trabajo en una sesión nueva. **Leer primero "Estado act
 | Convergencia | R-hat ≤ 1.004, 0 divergencias |
 | Residuos | ACF −0.02, DW 2.01, Ljung-Box OK; colas/heterocedasticidad = ruido que escala con el nivel (caveat de apéndice) |
 | VIF | máx 8.7 (temp_avg); precio 3.4, distribución 3.2, media 1.5–3.1 |
-| Elasticidad al premium | −0.47 (−0.56/−0.38; −0.61/−0.32 con incertidumbre AR); rango en todas las variantes −0.41 a −0.50 |
-| Distribución | +3.6% volumen por punto de ACV (3.2–4.0) |
-| Calor | +4.1% volumen por °C de máxima semanal sobre 20°C (3.7–4.6) |
-| Promo propia | ≈ 0: +1.7% por +10pp de intensidad (−1.9/+5.3) |
-| Media | £3.5M en 3 años (0.8% de facturación), ~0.8% del volumen; **ROI total 1.06 (0.65–1.66)** en ingresos, corto plazo, antes de margen |
-| ROI por campaña | 2023 TV+partnership 0.86 (0.42–1.58) · 2024 video+OOH 1.10 (0.49–2.19) · social 0.98 (0.32–2.60) |
-| Sin restricciones (OLS estilo Nielsen) | total sin search 1.26 (0.13–2.40) → el ~1 lo da la data, no el prior |
-| Año contra año | 2022→23 −8.2%: precio −7.7, competencia −1.8, clima −1.4, media +0.5 · 2023→24 +8.2%: distribución +13.3, precio −4.3, clima −1.6, competencia +1.5, media +0.7 |
-| Hechos de negocio | Facturación £126M→£147M→£167M (+32%; 2022 tiene 53 semanas); volumen 167→154→166m kg; precio/kg £0.76→£1.00; premium 1.5×→1.9×; promo share 16%→33%; distribución 39%→43% (≈46% en verano 2024) |
+| Elasticidad al precio relativo | −0.47 (−0.56/−0.38); variantes −0.41 a −0.50. Variable: `log(base_price_propio / precio_competencia_ponderado_A_B_C)` (corr propio vs competencia 0.86 → una sola variable) |
+| Distribución | +3.6% volumen por punto de ACV (3.2–4.0) ≈ £6m/año por punto (5.3–6.7) |
+| Calor | +4.1% volumen por °C de máxima semanal sobre 20°C (3.7–4.6); hinge lineal |
+| Promo propia | +1.7% por +10pp de intensidad (−1.9/+5.3) ≈ 0 → ROI promo 0.13 (0–0.42) |
+| Descuento regalado | volumen × (precio góndola − pagado): £2.8m / £10.1m / £14.9m (2022/23/24); volver a niveles 2022 → ahorro ~£11m, pérdida ~£1.5m (peor £4.8m) → neto +£6–10m |
+| Media | £3.5M en 3 años; **ROI 1.06 (0.65–1.66)** revenue, corto plazo, antes de margen. Por campaña: 2024 video+OOH 1.10, social 0.98, 2023 TV+partnership 0.86. Sin restricciones: 1.26 |
+| Hechos | Volumen 167→154→166m kg (semanal −6.4%, +8.2%); revenue semanal +34% 2022→24; precio góndola £0.77→£1.09 (+41%), pagado £0.76→£1.00 (+32%); premium vs competencia 1.5×→1.95×; promo share 16%→33%; distribución 39%→43.5% (prom. anual), ~46% verano 2024 y ene-2025 |
 
-### Qué NO afirmar (superado / no defendible)
-- ~~"Todos los canales están saturados" / mROI 0.4–0.8~~: la saturación y el carryover son **100% prior** (posterior = prior). Con un solo nivel de presión por canal no se pueden estimar curvas. Curvas de respuesta solo en apéndice y como supuesto.
-- ~~Ranking de canales~~: los canales que salieron juntos (TV dentro del flight de partnership en abr-23; video y OOH lanzados la misma semana en abr-24) no se pueden separar. Leer **por campaña**.
-- ~~ROI 1.13 / elasticidad −0.48 / holdout 13 semanas~~: son del modelo base viejo (`mmm_base`). Usar los números de la tabla de arriba.
-- No decir "rentabilidad" (no hay márgenes): decir "facturación/revenue".
-- No vender el R² 0.93 como mejora estructural (parte viene del término AR).
+### Qué NO afirmar
+- "Todos los canales saturados" / mROI: saturación y carryover = prior (posterior = prior). Meridian usa una curva por canal fija en el tiempo: no dice si la media rinde más en verano (eso salió del espejo, ~1σ).
+- Ranking de canales (lanzados juntos). Leer por campaña.
+- "Revenue +32%, todo genial": revenue ≠ ganancia (sin márgenes, inflación de costos 22–23). Hablar de **volumen** ("netteado").
+- Números viejos: ROI 1.13, elasticidad −0.48, holdout 13 sem, due-to −8.2% (era sobre totales con 53 semanas).
+- Quiebres de stock en olas de calor: no hay evidencia en la data (residuo medio ~+1% en semanas calientes).
 
-### Próximos pasos
-1. Iterar el deck slide por slide con el usuario (espera muchas vueltas). Abierto: dimensionar el plan (£ de +1 pt de distribución, de bajar promo); cómo decir lo de promo sin márgenes; waterfall en kg (eje truncado en 140m) vs %.
-2. Mantener el dashboard sincronizado solo si cambia algo del modelo (no debería).
-3. "With more time" (ya en el README): calibración con experimentos, modelo geo, ROI sobre margen, elasticidad propia vs cruzada, optimizador.
+## Sesión 5 (6-oct-2026): qué se hizo (detalle)
 
-## Sesión 5 (6-oct-2026): iteración del deck con comentarios
-
-- Branch vigente pasa a ser `claude/upbeat-davinci-5zpud1` (fast-forward de `friendly-goldberg`). Fuentes del deck en `deck/project/` sincronizadas con el artifact tras cada cambio.
-- Cambios: slide 2 (dos cards de precio de góndola propio +40% vs competencia +8%; "Stores that sell us"; takeaway sin AI talk), slide 3 (barras "Relative price" con ours/theirs por año; "Other*" = clima, promos marca C, calendario, no explicado), slide 4 (rehecha: elasticidad −0.5 como big number; recomendación "Hold the price gap, test before further increases"), slides 4–6 sin "So what" (recomendaciones directas), plan alineado.
-- Usuario: nada de "So what" explícito ni jerga; inglés básico; flechas solo para paso del tiempo.
-- **Elasticidad por nivel de premium** (`src/12_elasticity_by_premium.py` → `elasticity_by_premium.csv`, espejo lineal GLS-AR en log volumen): única −0.49 (= Meridian). Piecewise con corte 1.7/1.8/1.9×: diferencia alto−bajo −0.14/+0.10/+0.23, ninguna significativa; cuadrática: puntos más planos con premium alto (−0.69 a 1.4× → −0.22 a 1.95×) pero intervalos enormes arriba de 1.8×. Conclusión: la data no muestra que la sensibilidad crezca con el premium, pero arriba de ~1.9× está mal medida (pocas semanas, confundido con 2024). Respalda "testear antes de subir", no "no hay lugar".
-- Slides nuevas: distribución y clima separadas (`volume`, `weather`); waterfall completo por regresor (`duetofull`, antes de `dueto`; `src/13_due_to_regressors.py` → `story_due_to_regressors.csv`; generador `deck/make_waterfall.py`).
-- **Forma del calor** (`src/14_heat_shape.py`, espejo): lineal 2.8%/°C; con segunda pendiente desde 25°C: ~2%/°C 20–25 y ~3.3%/°C arriba (extra +1.3%, se 0.6); cuadrática positiva ~2σ; BIC igual. Pocas semanas (58 >20°C, 21 >25°C, 7 >28°C). Dirección = aceleración, sin precisión. Meridian usa hinge lineal en 20°C.
-- Slides nuevas: promos y media separadas (`promomedia`, `media`). Promo: descuento regalado £2.8m→£10.1m→£14.9m; ROI promo 0.13 (0 a 0.42); volver a niveles 2022 = +£6–10m netos/año (`src/15_promo_value.py`). Usuario: recomendación de promo directa (sin trial); "incremental" no "extra".
-- **Deep-dive media (hallazgos en el hilo, sin slides aún, pendiente debate):** ningún canal solo baja el ROI (sacando cualquiera: 0.89–0.98); abril 28% del gasto (índice demanda 98) vs junio 1% (124), 31% del video en nov–dic; interacción media×verano/calor ~2× pero 1σ; frecuencia digital muy baja (VOD 0.02, OLV 0.03, social 0.24 impr/adulto/sem; TV 155 GRPs/sem × 3); SOV 69%/50%/32% verano 2024; carryover corto (decay ≤0.5), largo plazo no medible. Propuestas A–H (timing may–ago, pulsos, clima, escalonar, geo lift media, brand lift/Trends, rotación creativa, promo→media). Short list: A, B+D, C, E, H.
-- **Reestructura (pedido del usuario): máx. 6 slides de contenido, prescriptivas y con £.** Orden: cover ("Revenue up 32%, volume flat") · dueto (puente Nielsen por driver, `deck/make_bridge.py`) · levers (£ por palanca: distribución £6m/pt, media £1.06, precio +1% = £0.8m, descuento £0.13) · promomedia (1. cortar descuentos: góndola +41% vs pagado +32%, £15m, ROI 0.13 → +£6–10m) · volume (2. distribución: dip H2-22 costó £10m; sostener 46% = +£14m vs 2024) · media (3. timeline as-run vs propuesto, pulsos may–ago escalonados, OOH por ola de calor → +£0.5–1m, `deck/make_media_timeline.py`) · plan (£20m+). Apéndice: fit, mediaroi, price, weather, growth. Precio y clima sin slide propia (usuario: insight sin accionable fuerte). Clima: no hay evidencia de quiebres de stock en semanas de calor (residuo medio ~+1%, distribución no cae).
-- Abierto: título de portada (6 opciones en el hilo), separar "Other" en barras o dejar nota.
+- **Preferencias nuevas del usuario (respetar):** inglés MUY básico en slides, nada de "AI talk" (frases tipo "Growth came from price, not from more bottles"), sin "So what:" explícito, "incremental" no "extra", flechas solo para paso del tiempo, máx. 6 slides de contenido, cada acción con £ y accionable concreto, recomendaciones directas cuando el insight es sólido (no "test with one retailer" para todo), visual estilo Nielsen (due-to, timelines). Quiere que le expliquen conceptos simple ("para idiotas") cuando pregunta. Desconfía si algo suena a error de criterio (ej. search como always-on de marca → corregido): pensar como planner de medios.
+- **Chequeos nuevos (scripts):**
+  - `src/12_elasticity_by_premium.py` → `elasticity_by_premium.csv`: elasticidad por nivel de premium (espejo log, GLS-AR). No crece con el premium de forma significativa; arriba de ~1.9× mal medida. Respalda "hold the gap + test", no "no hay lugar".
+  - `src/13_due_to_regressors.py` → `story_due_to_regressors.csv`: due-to por regresor (cada canal aparte), **promedio semanal** (2022 = 53 semanas). Requiere Meridian.
+  - `src/14_heat_shape.py`: forma del calor; ~2%/°C 20–25°C, ~3.3%/°C arriba (extra a ~2σ), pocas semanas (21 >25°C, 7 >28°C).
+  - `src/15_promo_value.py` → `story_promo_value.csv`: descuento regalado, ROI promo, escenario 2022.
+  - Deep-dive media (en sesión, sin script): timing (abril 28% del gasto con demanda índice 98; jun 1% con 124; 31% del video en nov–dic; 60% del gasto fuera de may–ago), interacción media×verano/calor ~2× a 1σ, frecuencia digital muy baja (VOD 0.02, OLV 0.03, social 0.24 impr/adulto/sem; TV 155 GRPs/sem × 3 sem), SOV 69%/50%/32% (verano 2024), carryover corto (decay ≤0.5), largo plazo no medible, CPMs: social más barato en jul–ago (£1.6–1.8 vs £2.6–3.0 sep–oct), VOD ~£29 plano, OLV ~£6–7. Ningún canal solo explica el ROI bajo (sacando cualquiera 0.89–0.98).
+  - Fundamento de concentrar media en picos: recency planning (Ephron), más compradores en mercado; contra: clutter (SOV), efectos de marca (Binet & Field) → por eso 20% always-on.
+- **Explicaciones dadas al usuario (por si vuelve a preguntar):** due-to = reparto de los puntos de cambio de volumen entre causas, suman al total; base vs incremental. Aditivo vs multiplicativo: Meridian aquí es aditivo entre drivers → due-to cierra exacto; mediana de suma ≠ suma de medianas (ROI total 1.06 vs canales ~0.93); espejo en log da lo mismo. Curvas de respuesta existen pero su forma es el prior (cada canal a un solo nivel de presión).
 
 ## Objetivo y encuadre
 
@@ -71,7 +90,7 @@ Archivo para retomar el trabajo en una sesión nueva. **Leer primero "Estado act
 
 ## Dónde está todo
 
-- **Repo:** `fedemendez1/nimblegravity`, carpeta `fmcg_mmm/`. **Branch vigente: `claude/friendly-goldberg-x46lp2`** (sesión 4; contiene todo lo de `claude/great-rubin-edkjpe`). Leer siempre la más reciente.
+- **Repo:** `fedemendez1/nimblegravity`, carpeta `fmcg_mmm/`. **Branch vigente: `claude/upbeat-davinci-5zpud1`** (sesión 5; contiene todo lo anterior). `main` no tiene el proyecto. Leer siempre la más reciente.
 - **Deck:** https://claude.ai/artifact/Hr4ZPiahCBL7Jx26wFT2HG · copia de fuentes en `deck/project/` (deck.json + `slides/*.html`).
 - **Dashboard (artifact privado):** https://claude.ai/artifact/5Z4CppFB4yJPW2MYC4xThA. Se regenera con `python src/05_dashboard.py` y se republica desde `outputs/dashboard.html`.
 - **Entorno:** `.venv` en la raíz del repo (no versionado). `pip install -r fmcg_mmm/requirements.txt` (Meridian 2.1.0). Correr los scripts desde `fmcg_mmm/src`.
@@ -98,7 +117,13 @@ Archivo para retomar el trabajo en una sesión nueva. **Leer primero "Estado act
 | `07_residuals.py --model mmm_x` | Residuos semanales, ACF/DW por año, screening de todas las columnas crudas y lags vs. residuos, figura `diag_02_residual_autocorr_<model>` |
 | `08_ar_twin.py --student-t --het` | Variantes del gemelo: colas pesadas y varianza que crece con el nivel → `ar_twin.csv` |
 | `10_unconstrained.py` | MMM clásico sin restricciones (OLS + AR(1) GLS, signos libres, adstock/Hill por grid BIC), ROI por canal y por campaña → `unconstrained_roi.csv`, `unconstrained_shapes.csv` (~30 s) |
-| `11_story.py` | Números del deck desde `mmm_final`: ROI por campaña, año contra año, efectos por unidad, ajuste semanal → `story_*.csv` |
+| `11_story.py` | Números del deck desde `mmm_final`: ROI por campaña, año contra año (buckets, totales anuales: superado por 13), efectos por unidad, ajuste semanal → `story_*.csv` |
+| `12_elasticity_by_premium.py` | Elasticidad por tramo de premium (espejo) → `elasticity_by_premium.csv` |
+| `13_due_to_regressors.py` | Due-to por regresor, promedio semanal, desde `mmm_final` → `story_due_to_regressors.csv` (usa Meridian, ~1 min) |
+| `14_heat_shape.py` | Forma del efecto calor (espejo, imprime) |
+| `15_promo_value.py` | Descuento regalado, ROI promo, escenario 2022 → `story_promo_value.csv` |
+| `deck/make_bridge.py <csv> <out.html>` | Genera `slides/dueto.html` (SVG due-to) |
+| `deck/make_media_timeline.py <out.html>` | Genera `slides/media.html` (timeline as-run vs proposed) |
 
 ## Decisiones tomadas (y por qué)
 
@@ -281,7 +306,7 @@ Modelado **cerrado**. `04_diagnostics.py`, dashboard y README ya apuntan a `mmm_
   - Elasticidad sin restricciones −0.46 (igual al final).
   - Respuesta al "ROI 1 a 1 es un fiasco": el insight no es el número sino que la marca depende poco de la media; las palancas son precio y distribución; el plan de medios no permite medir canales (proponer escalonar lanzamientos y variar presión). El usuario lo aceptó.
 
-## Sesión 4c: storytelling, MVP del deck (5-oct-2026)
+## [HISTÓRICO, deck superado en sesión 5] Sesión 4c: storytelling, MVP del deck (5-oct-2026)
 
 **Modelo CERRADO** (decisión del usuario). Ahora solo storytelling.
 
@@ -312,6 +337,10 @@ Modelado **cerrado**. `04_diagnostics.py`, dashboard y README ya apuntan a `mmm_
 5. Republicar dashboard solo si cambia algo del modelo (no debería).
 
 ## Gotchas técnicos
+
+- **Deck (formato Slides):** cada slide es un `<section>` con estilos inline; SVG inline permitido (≤52 KB) pero **sin entidades HTML (`&gt;`) ni markup raro** → la página deja la slide en read-only ("Slide problem"). Si el usuario manda "Slide problem" con line:col, es eso. Ojo con `sed`: en el reemplazo `&` inserta el texto matcheado (rompió una slide). Preferir Python `str.replace` con `assert`.
+- **Publicar el deck:** `Artifact` publish con `url` del deck, `root` = carpeta que contiene `project/`, `file_path` = un archivo cambiado, `files` = el resto (`"project/slides/x.html": null` borra). Enviar `deck.json` solo si cambia orden/secciones. Después copiar los archivos a `fmcg_mmm/deck/project/` y commitear.
+- El watch del artifact falla (mint_failed): los comentarios igual llegan cuando el usuario los envía a Claude.
 
 - **Priors en Meridian 2.1:** se exigen en float64. Usar `backend.tfd.LogNormal(np.float64(...))`.
 - **`save_meridian` (serde)** requiere `google-meridian[schema]`. Usamos `model.save_mmm` (pickle, deprecado pero funciona).
