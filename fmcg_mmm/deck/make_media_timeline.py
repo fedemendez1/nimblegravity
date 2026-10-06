@@ -47,7 +47,7 @@ panel(166, "As run, 2022–24 (one calendar)", asrun, "#4A5568")
 y2 = panel(398, "Proposed", prop, "#2A6FDB")
 yo = y2 + 4 * 30
 el.append(f'<rect x="{X(doy(D(heat[0]))):.0f}" y="{yo+2}" width="{X(doy(D(heat[1])))-X(doy(D(heat[0]))):.0f}" height="20" rx="4" fill="none" stroke="#2A6FDB" stroke-width="3" stroke-dasharray="10 6"/>')
-el.append(f'<text x="{X(doy(D("2025-07-16"))):.0f}" y="{yo+17}" text-anchor="middle" font-size="20" font-weight="700" fill="#2A6FDB">if >only if &gt;25°C forecast<gt;25°C forecast</text>')
+el.append(f'<text x="{X(doy(D("2025-07-16"))):.0f}" y="{yo+17}" text-anchor="middle" font-size="20" font-weight="700" fill="#2A6FDB">if 25°C+ forecast</text>')
 svg = f'<svg aria-label="Media timeline. As run: spend spread across the year, a TV burst in April, digital video and social into November and December, channels launched together. Proposed: about 80% of the budget in staggered 3-week pulses from mid-May to August, outdoor triggered by heatwave forecasts, light always-on video and outdoor the rest of the year, and search on all year." viewBox="0 0 {W} 612" style="position:absolute;left:128px;top:236px;width:{W}px;height:612px">\n' + "\n".join(el) + "\n</svg>"
 html = f'''<section id="media" data-transition="fade" style="background:#F6F7F4;color:#14213D;font-family:'DM Sans', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:24px">
 <h2 style="font-family:'Domine', Georgia, serif;font-size:56px;font-weight:700;line-height:1.15">3. Re-time media: same budget, run when shoppers buy</h2>
