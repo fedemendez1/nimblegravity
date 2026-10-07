@@ -40,7 +40,7 @@ for tag, label in MODELS.items():
     if tag != "final":
         continue
     total = float(r.nonoptimized_data.attrs["budget"])
-    for k in (0.5, 0.7, 0.85, 1.0, 1.15, 1.3, 1.5):
+    for k in sorted({*(round(0.1 * i, 1) for i in range(1, 16)), 0.85, 1.15}):
         s = opt.optimize(budget=total * k, spend_constraint_lower=BOUND, spend_constraint_upper=BOUND).optimized_data
         io = s.incremental_outcome.sum("channel")
         budget.append({"budget_x": k, "spend": total * k / years, "inc_revenue": float(io.sel(metric="mean")) / years,
