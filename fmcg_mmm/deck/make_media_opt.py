@@ -15,7 +15,7 @@ print(f"now {now_spend:.2f}/{now_rev:.2f} roi {roi_now:.2f}; -15% {cut_spend:.2f
 
 # left: change in spend by channel (stable across all four model variants)
 rows = [("Outdoor", "ooh"), ("Social", "social"), ("Digital video", "digital_video"), ("TV", "tv")]
-cx, k = 470, 7.0
+cx, k = 420, 5.5
 left = [f'<line x1="{cx}" y1="0" x2="{cx}" y2="300" stroke="#B8C2CC" stroke-width="2"/>']
 for i, (name, ch) in enumerate(rows):
     v = base.loc[ch, "spend_change_pct"]; y = 20 + i * 72; w = abs(v) * k
@@ -40,11 +40,13 @@ right.append(f'<line x1="80" y1="330" x2="740" y2="330" stroke="#B8C2CC" stroke-
 for s in (0.5, 1.0, 1.5):
     right.append(f'<text x="{X(s):.0f}" y="362" text-anchor="middle" font-size="24" fill="#6B7785">£{s:g}m</text>')
 right.append(f'<line x1="{X(0):.0f}" y1="{Y(0):.0f}" x2="{X(1.6):.0f}" y2="{Y(1.6):.0f}" stroke="#6B7785" stroke-width="2" stroke-dasharray="8 8"/>')
-right.append(f'<text x="{X(1.6) - 8:.0f}" y="{Y(1.6) + 34:.0f}" text-anchor="end" font-size="22" fill="#6B7785">£1 back per £1</text>')
+right.append('<text x="300" y="268" font-size="22" fill="#6B7785">£1 back per £1</text>')
+right.append('<text x="80" y="362" font-size="22" fill="#6B7785">Spend</text>')
+right.append('<text x="84" y="16" font-size="22" fill="#6B7785">Sales from media</text>')
 right.append('<polyline points="' + " ".join(f"{X(s):.0f},{Y(r):.0f}" for s, r in pts)
              + '" fill="none" stroke="#2A6FDB" stroke-width="6" stroke-linejoin="round"/>')
 right.append(f'<circle cx="{X(now_spend):.0f}" cy="{Y(now_rev):.0f}" r="11" fill="#14213D"/>')
-right.append(f'<text x="{X(now_spend) + 4:.0f}" y="{Y(now_rev) - 24:.0f}" text-anchor="start" font-size="24" font-weight="700" fill="#14213D">Today</text>')
+right.append(f'<text x="{X(now_spend) + 20:.0f}" y="{Y(now_rev) + 38:.0f}" text-anchor="start" font-size="24" font-weight="700" fill="#14213D">Today</text>')
 right.append(f'<circle cx="{X(cut_spend):.0f}" cy="{Y(cut_rev):.0f}" r="11" fill="#2A6FDB"/>')
 right.append(f'<text x="{X(cut_spend) - 20:.0f}" y="{Y(cut_rev) - 22:.0f}" text-anchor="end" font-size="24" font-weight="700" fill="#2A6FDB">−15%</text>')
 
@@ -69,7 +71,7 @@ html = f'''<section id="media" data-transition="fade" style="background:#F6F7F4;
 </div>
 <p style="position:absolute;left:128px;top:868px;width:1664px;font-size:32px;font-weight:700;color:#2A6FDB">Spend 15% less and move it to outdoor and social: {lift:.0%} more back per £1, {keep:.0%} of the sales.</p>
 <p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#6B7785">Sales from media a year, short term, before margin. Source: marketing mix model, budget optimiser.</p>
-<aside>NOTES</aside>
+<aside>What the optimiser says, and how sure we are. Today media costs about £{now_spend:.2f}m a year and brings back about £{now_rev:.2f}m of sales (£{roi_now:.2f} per £1, short term, before margin). 1) Mix: Meridian budget optimiser, same total budget, each channel allowed to move up to 30%: more outdoor and social, less digital video and TV; partnership and search about the same. The gain is small, about +{same:.0%} return (about £20k a year). Re-run on the three other model versions (different starting assumptions on returns): outdoor up, social up and digital video down in all four, TV down in three of four; gains £8k to £42k a year. 2) Level: the curve flattens; the last £1 brings back about 50p of sales. 15% less spend, re-mixed, keeps about {keep:.0%} of media sales (£{cut_rev:.2f}m) and lifts return per £1 by about {lift:.0%} (£{roi_cut:.2f}); 30% less keeps about 83% and lifts return about 19%. More budget does not pay: +30% spend brings about 52p per extra £1. With any realistic margin media does not pay back in the short term; its case is long-term brand effects, which this data cannot measure, so trim and test rather than switch off. 3) Limits: each campaign ran at one or two weights and channels launched together, so curve shapes lean on the model standard assumptions while the averages come from the data; that is why we show directions that hold in every version, not an exact mix. 4) Next: vary weight by region and stagger channel launches so the next model can draw each curve; geo holdouts to calibrate. Media is a small lever for this brand (under 1% of volume).</aside>
 </section>
 '''
 open(out, "w").write(html)
