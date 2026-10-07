@@ -1,13 +1,8 @@
-"""Fit the Meridian MMM (national, weekly). Volume KPI, revenue via price per kg.
+"""Fit the MMM in two stages: a first fit, then the final model with last week's first-stage residual as a
+control (AR(1) errors via feasible GLS, since Meridian has no AR term).
 
-Usage:
-    python 03_model.py                              # base spec, full sample -> outputs/mmm_base.pkl
-    python 03_model.py --holdout 13                 # + last 13 weeks held out -> mmm_base_ho13.pkl
-    python 03_model.py --tag k6 --knots 6           # sensitivity variants
-    python 03_model.py --tag wide --roi-prior 0,1.5
-    python 03_model.py --draws quick                # smoke test
-    python 03_model.py --tag cCar --extra comp_c_promo_share --ar-from mmm_cC   # AR(1) correction
-    python 03_model.py --tag final_h22 --heat 22 --extra comp_c_promo_share --ar-from mmm_stage1 --draws screen
+    python 03_model.py                 # full sample  -> outputs/models/mmm_stage1.pkl, mmm_final.pkl
+    python 03_model.py --holdout 26    # last 26 weeks held out -> *_ho26.pkl
 """
 import argparse
 import os
@@ -19,35 +14,35 @@ warnings.filterwarnings("ignore")
 import numpy as np
 import pandas as pd
 from meridian import backend
+from meridian.analysis import analyzer
 from meridian.data import data_frame_input_data_builder as dfb
 from meridian.model import model, prior_distribution, spec
 
-from style import ROOT, TAB
+from style import MODELS, ROOT
 
 CHANNELS = ["tv", "digital_video", "social", "partnership", "ooh", "search_rdm"]
-# business drivers: modelled as non-media treatments so Meridian reports their contribution
-DRIVERS = ["temp_avg", "heat_excess", "distribution", "log_rel_price", "promo_intensity", "comp_media_spend"]
+DRIVERS = ["temp_avg", "heat_excess", "distribution", "log_rel_price", "promo_intensity", "comp_media_spend",
+           "comp_c_promo_share"]
 CONTROLS = ["rainfall", "new_year_week", "season_sin", "season_cos"]
 
-ROI_PRIOR = (0.0, 0.7)  # LogNormal: median ROI 1.0, 90% interval ~[0.3, 3.2]
+ROI_PRIOR = (0.0, 0.7)  # LogNormal: median 1, 90% ~ [0.3, 3.2]
 MAX_LAG = 8
 SEED = 42
 DRAWS = {
-    "quick": dict(n_chains=2, n_adapt=200, n_burnin=100, n_keep=200),
     "screen": dict(n_chains=2, n_adapt=500, n_burnin=300, n_keep=500),
     "full": dict(n_chains=4, n_adapt=1000, n_burnin=500, n_keep=1000),
 }
 
 
-def load_data(path=ROOT / "data/clean/model_data.csv", drivers=DRIVERS, ar_from=None):
-    df = pd.read_csv(path)
-    controls = CONTROLS
-    if ar_from:
-        # feasible GLS for AR(1) errors (Meridian has no AR term): last week's residual from a
-        # first-stage fit enters as a control, so the model's residuals are the AR innovations
-        r = pd.read_csv(TAB / f"resid_{ar_from}.csv", index_col=0).iloc[:, 0]
-        df["resid_lag1"] = r.shift(1).fillna(0).to_numpy() * 1e6
-        controls = CONTROLS + ["resid_lag1"]
+def load_df(resid=None):
+    df = pd.read_csv(ROOT / "data/clean/model_data.csv")
+    if resid is not None:
+        df["resid_lag1"] = resid.shift(1).fillna(0).to_numpy()
+    return df
+
+
+def input_data(df, drivers=DRIVERS):
+    controls = CONTROLS + (["resid_lag1"] if "resid_lag1" in df else [])
     return (dfb.DataFrameInputDataBuilder(kpi_type="non_revenue")
             .with_kpi(df, kpi_col="volume_kg")
             .with_revenue_per_kpi(df, revenue_per_kpi_col="price_per_kg")
@@ -58,43 +53,40 @@ def load_data(path=ROOT / "data/clean/model_data.csv", drivers=DRIVERS, ar_from=
             .build())
 
 
-def model_spec(times, holdout_weeks=0, knots=1, roi_prior=ROI_PRIOR):
-    prior = prior_distribution.PriorDistribution(
-        roi_m=backend.tfd.LogNormal(*map(np.float64, roi_prior), name="roi_m"))
-    holdout = spec.HoldoutSpec(spec=[spec.DateRange(times[-holdout_weeks], None)]) if holdout_weeks else None
-    # drivers: weakly-informative coefficient prior (gamma_n ~ N(0, 5)), contribution measured vs min
-    return spec.ModelSpec(prior=prior, media_prior_type="roi", max_lag=MAX_LAG, knots=knots,
-                          non_media_treatments_prior_type="coefficient", holdout=holdout)
-
-
-def fit(holdout_weeks=0, knots=1, roi_prior=ROI_PRIOR, draws="full", extra=(), ar_from=None):
-    data = load_data(drivers=DRIVERS + list(extra), ar_from=ar_from)
+def fit(df, holdout=0, roi_prior=ROI_PRIOR, drivers=DRIVERS, draws="full"):
+    data = input_data(df, drivers)
     times = [str(t) for t in data.time.values]
-    mmm = model.Meridian(input_data=data, model_spec=model_spec(times, holdout_weeks, knots, roi_prior))
+    model_spec = spec.ModelSpec(
+        prior=prior_distribution.PriorDistribution(
+            roi_m=backend.tfd.LogNormal(*map(np.float64, roi_prior), name="roi_m")),
+        media_prior_type="roi", max_lag=MAX_LAG, knots=1,
+        non_media_treatments_prior_type="coefficient",  # drivers: N(0, 5) on standardised scale
+        holdout=spec.HoldoutSpec(spec=[spec.DateRange(times[-holdout], None)]) if holdout else None)
+    mmm = model.Meridian(input_data=data, model_spec=model_spec)
     mmm.sample_prior(500, seed=SEED)
     mmm.sample_posterior(**DRAWS[draws], seed=SEED)
     return mmm
 
 
+def residuals(mmm):
+    e = analyzer.Analyzer(mmm).expected_vs_actual_data(use_kpi=True).sel(geo="national_geo")
+    return pd.Series(e.actual.values - e.expected.sel(metric="mean").values,
+                     index=pd.to_datetime(e.time.values), name="resid_kg")
+
+
+def fit_two_stage(holdout=0, **kw):
+    stage1 = fit(load_df(), holdout, **kw)
+    resid = residuals(stage1)
+    return stage1, fit(load_df(resid), holdout, **kw), resid
+
+
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("--tag", default="base")
     ap.add_argument("--holdout", type=int, default=0)
-    ap.add_argument("--knots", type=int, default=1)
-    ap.add_argument("--roi-prior", default=",".join(map(str, ROI_PRIOR)), help="lognormal mu,sigma")
-    ap.add_argument("--draws", choices=DRAWS, default="full")
-    ap.add_argument("--extra", nargs="*", default=[], help="additional driver columns")
-    ap.add_argument("--ar-from", help="first-stage model whose lagged residuals enter as a control")
-    ap.add_argument("--no-season", action="store_true", help="drop Fourier seasonality controls")
-    ap.add_argument("--heat", type=int, help="heat_excess threshold in C (default 20)")
     args = ap.parse_args()
 
-    roi_prior = tuple(float(v) for v in args.roi_prior.split(","))
-    if args.heat:
-        DRIVERS[DRIVERS.index("heat_excess")] = f"heat_excess_{args.heat}"
-    if args.no_season:
-        CONTROLS[:] = [c for c in CONTROLS if not c.startswith("season_")]
-    mmm = fit(args.holdout, args.knots, roi_prior, args.draws, args.extra, args.ar_from)
-    name = f"mmm_{args.tag}" + (f"_ho{args.holdout}" if args.holdout else "")
-    model.save_mmm(mmm, str(ROOT / f"outputs/{name}.pkl"))
-    print(f"saved outputs/{name}.pkl")
+    sfx = f"_ho{args.holdout}" if args.holdout else ""
+    stage1, final, resid = fit_two_stage(args.holdout)
+    resid.to_csv(MODELS / f"stage1_residuals{sfx}.csv")
+    model.save_mmm(stage1, str(MODELS / f"mmm_stage1{sfx}.pkl"))
+    model.save_mmm(final, str(MODELS / f"mmm_final{sfx}.pkl"))

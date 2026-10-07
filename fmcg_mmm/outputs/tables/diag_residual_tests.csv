@@ -1,4 +1,6 @@
 test,stat,df,p_value,excess_kurtosis,skew
+acf_lag1,-0.0236,,,,
+durbin_watson,2.0063,,,,
 ljung_box_lag1,0.0912,1.0,0.7627,,
 ljung_box_lag4,2.3887,4.0,0.6647,,
 ljung_box_lag13,8.5747,13.0,0.8043,,

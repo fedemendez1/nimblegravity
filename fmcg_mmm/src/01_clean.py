@@ -1,4 +1,4 @@
-"""Load raw weekly data, run sanity checks and build the modelling dataset."""
+"""Checks on the raw weekly data and the modelling dataset."""
 from pathlib import Path
 
 import numpy as np
@@ -8,8 +8,8 @@ ROOT = Path(__file__).resolve().parents[1]
 RAW = ROOT / "data/raw/model_variables.xlsx"
 OUT = ROOT / "data/clean/model_data.csv"
 
-# group -> (raw channels, execution columns). None = no execution metric, spend is used.
-# TV kept apart from digital video: GRPs and impressions don't add up.
+# channel -> (raw channels, exposure columns); None = no exposure metric, spend is used.
+# TV is kept apart from digital video: GRPs and impressions don't add up.
 CHANNEL_GROUPS = {
     "tv": (["TV"], ["Media_TV_GRPs"]),
     "digital_video": (["VOD", "OLV"], ["Media_VOD_Impressions", "Media_OLV_Impressions"]),
@@ -25,7 +25,6 @@ def check(df):
     assert not df.isna().any().any(), "missing values"
     num = df.select_dtypes("number")
     assert (num.drop(columns=[c for c in num if c.startswith("weather")]) >= 0).all().all(), "negative values"
-    # identity checks: value = volume * price, promo <= total
     gap = (df["Value_Sales"] / (df["Volume_Sales"] * df["Avg_PPKG"]) - 1).abs().max()
     print(f"max |value / (volume * ppkg) - 1|: {gap:.4f}")
     assert (df["Promotion_Volume_Sales"] <= df["Volume_Sales"]).all()
@@ -37,7 +36,7 @@ def build(df):
     comp_ppkg = df[[f"Comp_Brand_{c}_Avg_PPKG" for c in comps]].to_numpy()
     comp_price = (comp_vol * comp_ppkg).sum(1) / comp_vol.sum(1)
 
-    # promo price above base price in a few weeks -> no real discount
+    # a few weeks have promo price above base price: no real discount
     depth = (1 - df["Promotion_Avg_PPKG"] / df["Base_Avg_PPKG"]).clip(lower=0)
 
     out = pd.DataFrame({
@@ -48,34 +47,31 @@ def build(df):
         "base_price_per_kg": df["Base_Avg_PPKG"],
         "comp_price_per_kg": comp_price,
         "rel_base_price": df["Base_Avg_PPKG"] / comp_price,
-        # logs so coefficients read as elasticities
         "log_base_price": np.log(df["Base_Avg_PPKG"]),
         "log_comp_price": np.log(comp_price),
-        # own and competitor log prices share the inflation trend (r=0.86): model the premium instead
+        # own and competitor prices move together (r=0.86), so the model uses the premium
         "log_rel_price": np.log(df["Base_Avg_PPKG"] / comp_price),
         "promo_share_vol": df["Promotion_Volume_Sales"] / df["Volume_Sales"],
         "promo_distribution": df["Promotion_ACV_Weighted_Distribution_wtd"],
         "promo_depth": depth,
-        # discount x share of stores on promo: one promo pressure measure
+        # discount x share of stores on promotion
         "promo_intensity": depth * df["Promotion_ACV_Weighted_Distribution_wtd"] / 100,
         "distribution": df["ACV_Weighted_Distribution_wtd"],
         "temp_avg": df["weather_average_temp"],
-        # degrees above 20C weekly max: captures heatwave peaks a linear temp term misses
+        # degrees above 20C weekly max: heatwave peaks
         "heat_excess": (df["weather_max_temp"] - 20).clip(lower=0),
         "rainfall": df["weather_rainfall"],
         "comp_media_spend": df["Comp_Brand_A_Media_Spends"] + df["Comp_Brand_B_Media_Spends"],
         "comp_volume_kg": comp_vol.sum(1),
-        # competitor promo pressure: residuals dip when brand C promotes / brand A discounts deeper
         "comp_c_promo_share": df["Comp_Brand_C_Promotion_Volume_Sales"] / df["Comp_Brand_C_Volume_Sales"],
-        "comp_a_promo_depth": (1 - df["Comp_Brand_A_Promotion_Avg_PPKG"] / df["Comp_Brand_A_Base_Avg_PPKG"]).clip(lower=0),
-        # annual seasonality beyond temperature (spring sells more than autumn at equal temp)
+        # spring sells more than autumn at the same temperature
         "season_sin": np.sin(2 * np.pi * df["Date"].dt.dayofyear / 365.25),
         "season_cos": np.cos(2 * np.pi * df["Date"].dt.dayofyear / 365.25),
-        # week starting 27 Dec - 2 Jan: ~20% volume drop every year
+        # week starting 27 Dec - 2 Jan sells ~20% less every year
         "new_year_week": (((df["Date"].dt.month == 12) & (df["Date"].dt.day >= 27))
                           | ((df["Date"].dt.month == 1) & (df["Date"].dt.day <= 2))).astype(int),
     })
-    # threshold sensitivity for heat_excess
+    # other heat thresholds, for the sensitivity check
     for t in (18, 22, 24):
         out[f"heat_excess_{t}"] = (df["weather_max_temp"] - t).clip(lower=0)
     for grp, (chs, exe) in CHANNEL_GROUPS.items():

@@ -1,9 +1,0 @@
-effect,median,lo,hi,volume_m_kg,value_m_gbp,price_per_kg,premium_vs_comp,promo_share,distribution,media_k_gbp,weeks
-volume_pct_per_distribution_point,3.589,3.184,4.006,,,,,,,,
-volume_pct_per_degree_above_20C,4.141,3.69,4.611,,,,,,,,
-volume_pct_per_10pct_higher_premium,-4.462,-5.327,-3.592,,,,,,,,
-volume_pct_per_10pp_promo_intensity,1.653,-1.912,5.318,,,,,,,,
-facts_2022,,,,167.333,126.43,0.756,1.496,0.158,39.24,235.545,53.0
-facts_2023,,,,153.61,146.643,0.955,1.786,0.29,39.93,1163.833,52.0
-facts_2024,,,,166.261,166.587,1.002,1.947,0.332,43.451,2068.543,52.0
-facts_2025,,,,11.592,10.086,0.87,1.942,0.465,45.84,0.0,4.0

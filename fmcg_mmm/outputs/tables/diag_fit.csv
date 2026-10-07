@@ -1,22 +1,13 @@
 model,metric,geo_granularity,value,evaluation_set
-mmm_final,R_Squared,national,0.93,
-mmm_final,MAPE,national,0.04,
-mmm_final,wMAPE,national,0.041,
-mmm_final_ho26,R_Squared,national,0.93,Train
-mmm_final_ho26,R_Squared,national,0.912,Test
-mmm_final_ho26,R_Squared,national,0.928,All Data
-mmm_final_ho26,MAPE,national,0.041,Train
-mmm_final_ho26,MAPE,national,0.046,Test
-mmm_final_ho26,MAPE,national,0.042,All Data
-mmm_final_ho26,wMAPE,national,0.042,Train
-mmm_final_ho26,wMAPE,national,0.047,Test
-mmm_final_ho26,wMAPE,national,0.043,All Data
-mmm_final_ho13,R_Squared,national,0.93,Train
-mmm_final_ho13,R_Squared,national,0.673,Test
-mmm_final_ho13,R_Squared,national,0.929,All Data
-mmm_final_ho13,MAPE,national,0.041,Train
-mmm_final_ho13,MAPE,national,0.038,Test
-mmm_final_ho13,MAPE,national,0.041,All Data
-mmm_final_ho13,wMAPE,national,0.042,Train
-mmm_final_ho13,wMAPE,national,0.037,Test
-mmm_final_ho13,wMAPE,national,0.042,All Data
+full sample,R_Squared,national,0.93,
+full sample,MAPE,national,0.04,
+full sample,wMAPE,national,0.041,
+last 26 weeks held out,R_Squared,national,0.93,Train
+last 26 weeks held out,R_Squared,national,0.912,Test
+last 26 weeks held out,R_Squared,national,0.928,All Data
+last 26 weeks held out,MAPE,national,0.041,Train
+last 26 weeks held out,MAPE,national,0.046,Test
+last 26 weeks held out,MAPE,national,0.042,All Data
+last 26 weeks held out,wMAPE,national,0.042,Train
+last 26 weeks held out,wMAPE,national,0.047,Test
+last 26 weeks held out,wMAPE,national,0.043,All Data

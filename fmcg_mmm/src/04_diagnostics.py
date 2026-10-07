@@ -1,10 +1,4 @@
-"""Model checks (convergence, fit, residuals, signs, prior vs posterior) and headline results.
-
-Usage:
-    python 04_diagnostics.py                  # outputs/mmm_base.pkl (+ mmm_base_ho13.pkl if present)
-    python 04_diagnostics.py --model mmm_final   # + mmm_final_ho26 / _ho13 if present
-"""
-import argparse
+"""Checks on the final model (convergence, fit, holdout, residuals, VIF, signs) and its media results."""
 import os
 import warnings
 
@@ -20,15 +14,14 @@ from meridian.analysis import analyzer
 from meridian.model import model
 from scipy import stats
 
-from style import CHANNEL_COLORS, GRID, INK_2, ROOT, SERIES, TAB, save
+from style import CHANNEL_COLORS, GRID, INK_2, MODELS, ROOT, SERIES, TAB, save
 
-EXPECTED_SIGN = {"temp_avg": 1, "heat_excess": 1, "distribution": 1, "log_rel_price": -1,
-                 "promo_intensity": 1, "comp_media_spend": -1,
-                 "comp_c_promo_share": -1, "comp_a_promo_depth": -1, "rainfall": -1, "new_year_week": -1}
+EXPECTED_SIGN = {"temp_avg": 1, "heat_excess": 1, "distribution": 1, "log_rel_price": -1, "promo_intensity": 1,
+                 "comp_media_spend": -1, "comp_c_promo_share": -1, "rainfall": -1, "new_year_week": -1}
 
 
-def load(name):
-    return model.load_mmm(str(ROOT / f"outputs/{name}.pkl"))
+def load(name="mmm_final"):
+    return model.load_mmm(str(MODELS / f"{name}.pkl"))
 
 
 def convergence(mmm):
@@ -50,9 +43,6 @@ def fit_quality(a, label):
     return acc
 
 
-def residual_acf(resid):
-    r = resid - resid.mean()
-    return {f"lag{k}": float(np.sum(r[k:] * r[:-k]) / np.sum(r * r)) for k in (1, 2, 4, 52)}
 
 
 def fitted(a):
@@ -78,13 +68,9 @@ def fitted_vs_actual(a, times):
     a2.xaxis.set_major_formatter(mdates.DateFormatter("%b %y"))
     save(fig, "diag_01_fit_residuals")
 
-    acf = residual_acf(resid)
-    print("residual ACF:", {k: round(v, 2) for k, v in acf.items()})
-    return acf
-
 
 def vif(mmm):
-    """VIF of every regressor (drivers, controls, media exposure): diagonal of the inverse correlation matrix."""
+    """Diagonal of the inverse correlation matrix of all regressors."""
     d = mmm.input_data
     x = pd.concat([d.non_media_treatments.sel(geo="national_geo").to_pandas(),
                    d.controls.sel(geo="national_geo").to_pandas(),
@@ -97,13 +83,16 @@ def vif(mmm):
 
 
 def residual_tests(resid, fit):
-    """Ljung-Box (no autocorrelation), Jarque-Bera (normality), Breusch-Pagan vs fitted (constant variance)."""
+    """Durbin-Watson and Ljung-Box (autocorrelation), Jarque-Bera (normality), Breusch-Pagan (constant variance)."""
     n, r = len(resid), resid - resid.mean()
     acf = np.array([np.sum(r[k:] * r[:-k]) / np.sum(r * r) for k in range(1, 27)])
-    rows = [{"test": f"ljung_box_lag{h}", "stat": n * (n + 2) * np.sum(acf[:h] ** 2 / (n - np.arange(1, h + 1))),
-             "df": h} for h in (1, 4, 13, 26)]
-    for row in rows:
+    rows = [{"test": "acf_lag1", "stat": acf[0]},
+            {"test": "durbin_watson", "stat": np.sum(np.diff(r) ** 2) / np.sum(r * r)}]
+    lb = [{"test": f"ljung_box_lag{h}", "stat": n * (n + 2) * np.sum(acf[:h] ** 2 / (n - np.arange(1, h + 1))),
+           "df": h} for h in (1, 4, 13, 26)]
+    for row in lb:
         row["p_value"] = stats.chi2.sf(row["stat"], row["df"])
+    rows += lb
     jb = stats.jarque_bera(resid)
     rows.append({"test": "jarque_bera", "stat": jb.statistic, "p_value": jb.pvalue,
                  "excess_kurtosis": stats.kurtosis(resid), "skew": stats.skew(resid)})
@@ -147,7 +136,7 @@ def roi_table(a):
     })
     draws = np.asarray(a.roi(use_kpi=False)).reshape(-1, len(s.channel) - 1)
     out["p_roi_above_1"] = pd.Series((draws > 1).mean(0), index=s.channel.values[:-1])
-    # how much the data narrowed the ROI interval vs the prior (1 = learned nothing)
+    # 1 = the data did not narrow the prior
     out["ci_width_post_vs_prior"] = ((roi[("posterior", "ci_hi")] - roi[("posterior", "ci_lo")])
                                      / (roi[("prior", "ci_hi")] - roi[("prior", "ci_lo")]))
     return out, roi
@@ -181,10 +170,8 @@ def price_promo_effects(mmm):
     g = mmm.inference_data.posterior.gamma_n
     vol_sd, vol_mean = df.volume_kg.std(ddof=0), df.volume_kg.mean()
     effects = {
-        # % volume change per 1% increase in price premium vs competitors
         "price_elasticity": g.sel(non_media_channel="log_rel_price").values.ravel()
         * vol_sd / df.log_rel_price.std(ddof=0) / vol_mean,
-        # % volume change per +10pp of promo intensity (discount x share of stores on promo)
         "promo_uplift_per_10pp": g.sel(non_media_channel="promo_intensity").values.ravel()
         * vol_sd / df.promo_intensity.std(ddof=0) * 0.10 / vol_mean * 100,
     }
@@ -196,7 +183,7 @@ def price_promo_effects(mmm):
 
 
 def response_curves(a, n_weeks):
-    """Incremental revenue vs spend, scaling each channel's historical flighting. Annualised."""
+    """Annual incremental revenue vs spend, scaling each channel's historical flighting."""
     mult = np.round(np.arange(0, 3.01, 0.1), 2)
     rc = a.response_curves(spend_multipliers=list(mult))
     years = n_weeks / 52
@@ -223,7 +210,7 @@ def response_curves(a, n_weeks):
 def contributions(a):
     s = a.summary_metrics(use_kpi=True, include_non_paid_channels=True)
     base = a.baseline_summary_metrics(use_kpi=True)
-    pct =s.pct_of_contribution.sel(distribution="posterior").to_pandas()
+    pct = s.pct_of_contribution.sel(distribution="posterior").to_pandas()
     pct.loc["baseline"] = base.pct_of_contribution.sel(distribution="posterior").to_pandas()
     pct = pct.drop(index="All Channels")
     pct.round(2).to_csv(TAB / "results_contributions_pct.csv")
@@ -243,21 +230,14 @@ def contributions(a):
 
 
 if __name__ == "__main__":
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--model", default="mmm_base")
-    args = ap.parse_args()
-
-    mmm = load(args.model)
+    mmm = load()
     a = analyzer.Analyzer(mmm)
     times = pd.to_datetime(mmm.input_data.time.values)
 
     print("== convergence"); convergence(mmm)
     print("== fit")
-    acc = [fit_quality(a, args.model)]
-    for ho in (f"{args.model}_ho26", f"{args.model}_ho13"):
-        if (ROOT / f"outputs/{ho}.pkl").exists():
-            acc.append(fit_quality(analyzer.Analyzer(load(ho)), ho))
-    acc = pd.concat(acc)
+    acc = pd.concat([fit_quality(a, "full sample"),
+                     fit_quality(analyzer.Analyzer(load("mmm_final_ho26")), "last 26 weeks held out")])
     acc.round(3).to_csv(TAB / "diag_fit.csv", index=False)
     print(acc.round(3).to_string(index=False))
     fitted_vs_actual(a, times)
