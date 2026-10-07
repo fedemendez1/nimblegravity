@@ -47,5 +47,5 @@ if __name__ == "__main__":
     for label, kw in VARIANTS.items():
         mmm = m03.fit(m03.load_df(resid), draws="screen", **kw)
         rows.append(summarise(mmm, label))
-        print(pd.Series(rows[-1]).round(3).to_string(), "\n")
+        print(pd.Series(rows[-1]).to_string(), "\n")
     pd.DataFrame(rows).round(3).to_csv(ROB / "sensitivity.csv", index=False)
