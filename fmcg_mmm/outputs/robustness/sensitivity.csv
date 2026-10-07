@@ -1,0 +1,8 @@
+variant,heat_driver,r2,mape,price_elasticity,roi_tv,roi_digital_video,roi_social,roi_partnership,roi_ooh,roi_search_rdm,roi_All Channels,spend_change_tv,spend_change_digital_video,spend_change_social,spend_change_partnership,spend_change_ooh,spend_change_search_rdm
+base,heat_excess,0.93,0.04,-0.464,0.715,0.931,0.957,0.923,1.388,1.012,1.081,-14.178,-15.68,21.739,0.522,30.0,10.345
+"prior wide LogNormal(0, 1.5)",heat_excess,0.93,0.04,-0.464,0.442,0.566,0.734,0.742,1.774,0.934,0.989,-30.057,-20.0,30.027,12.87,30.0,31.034
+"prior tight LogNormal(0, 0.35)",heat_excess,0.929,0.04,-0.464,0.894,0.996,1.016,0.974,1.077,0.99,1.033,14.178,-17.52,8.832,-3.826,30.0,-13.793
+"prior median 2 LogNormal(0.69, 0.7)",heat_excess,0.93,0.04,-0.475,0.979,1.367,1.53,1.405,2.331,1.995,1.595,-20.794,-18.16,28.94,1.739,30.0,31.034
+heat above 18C,heat_excess_18,0.924,0.042,-0.457,0.821,0.919,1.143,0.977,1.376,1.009,1.145,-6.994,-23.12,30.027,0.0,30.0,0.0
+heat above 22C,heat_excess_22,0.932,0.042,-0.475,0.608,0.965,0.82,0.854,1.579,1.012,1.038,-25.142,-0.16,4.62,-1.739,30.0,20.69
+heat above 24C,heat_excess_24,0.927,0.045,-0.496,0.568,1.119,0.765,0.803,1.851,1.006,1.111,-30.057,17.52,-11.821,-14.261,30.0,13.793

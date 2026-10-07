@@ -75,7 +75,7 @@ Own and competitor prices move together (r = 0.86), so the model uses the price 
 
 ## Robustness
 
-- ROI prior and heat threshold: elasticity, total media ROI and the optimiser's direction hold across variants (`outputs/robustness/sensitivity.csv`).
+- ROI prior and heat threshold (18–24°C): elasticity −0.46 to −0.50 and total media ROI 0.99–1.14 (1.60 when the prior is centred on 2). The optimiser gives outdoor more in every variant and digital video and TV less in most (`outputs/robustness/sensitivity.csv`).
 - Joint AR(1) in PyMC: same elasticity and ROI, wider intervals (`ar_twin.csv`).
 - Regression without priors: total media ROI about 1.2; individual channels not separable (`unconstrained_roi.csv`).
 
