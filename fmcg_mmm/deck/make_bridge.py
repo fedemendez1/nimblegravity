@@ -43,8 +43,13 @@ for j, p in enumerate(["2022-2023", "2023-2024"]):
         txt = f"{val:+.1f}".replace("-", "−")
         fw = "700" if kind == "total" or abs(val) >= 1 else "400"
         ty = top - 10 if val >= 0 or kind == "total" and val >= 0 else bot + 28
+        if ty - 22 <= Y(0) <= ty: ty = top - 10  # keep the number off the zero line
         el.append(f'<text x="{cx:.0f}" y="{ty:.0f}" text-anchor="middle" font-size="24" font-weight="{fw}" fill="{tc}">{txt}</text>')
-        el.append(f'<text x="{cx + 8:.0f}" y="{y0t + 40}" text-anchor="end" font-size="22" font-weight="{700 if kind == "total" else 400}" fill="#4A5568" transform="rotate(-40 {cx + 8:.0f} {y0t + 40})">{lab}</text>')
+        w = lab.split(" ")
+        lines = [lab] if len(w) == 1 else [" ".join(w[:-1]), w[-1]]
+        lx, anc = (x0 - (30 if x0 else 0), "start") if i == 0 else (cx, "middle")  # long first label: use the gap
+        for k, ln in enumerate(lines):
+            el.append(f'<text x="{lx:.0f}" y="{y0t + 40 + k * 24}" text-anchor="{anc}" font-size="20" font-weight="{700 if kind == "total" else 400}" fill="#4A5568">{ln}</text>')
 svg = f'<svg aria-label="Volume due-to, weekly average. 2023 vs 2022, volume −6.4%: relative price −8.2 points, Brand C promotions −1.9, hot weeks −0.6, distribution +2.4; our promotions +0.6, media +0.5. 2024 vs 2023, volume +8.2%: distribution +13.3 points, Brand C promotions +1.7, hot weeks −1.6, relative price −4.3; media +0.6, our promotions +0.3. Two years net: volume +1.3%." viewBox="0 0 {W} {H}" style="position:absolute;left:128px;top:240px;width:{W}px;height:{H}px">\n' + "\n".join(el) + "\n</svg>"
 html = f'''<section id="dueto" data-transition="fade" style="background:#F6F7F4;color:#14213D;font-family:'DM Sans', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:24px">
 <h2 style="font-family:'Domine', Georgia, serif;font-size:56px;font-weight:700;line-height:1.15">Volume due-to: price took it, distribution gave it back</h2>
