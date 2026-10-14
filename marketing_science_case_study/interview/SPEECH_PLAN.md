@@ -232,9 +232,24 @@ this one could break."
   is ~0, so cost isn't rising with spend. The Q4 dummy is +0.18 log points,
   about **+20% at identical spend**. That is seasonality and lower
   incrementality, **not saturation**.
-- **Saturation check:** elasticity of MMM registrations to spend is ~0.96–1.05
-  with R² > 0.99. That's constant returns *within the observed range*. Monthly
-  spend went from £35k to £122k.
+- **Saturation check:** regression of log(MMM registrations) on log(spend),
+  per vendor, Jan–Oct: elasticity 0.96 (Google) and 0.99 (Tradedesk), R²
+  0.995–0.999. Elasticity ≈ 1 means double the spend, double the
+  registrations: constant cost per registration, so no sign of diminishing
+  returns *within the observed range* (monthly spend £35k → £122k). Q4 alone
+  for Google is too noisy to read (8 weeks, R² 0.29). The near-perfect fit is
+  very likely circular: the MMM attributes display results largely in
+  proportion to display spend, so regressing its output on spend partly
+  recovers its own formula. Both series also share the same upward trend.
+- **Q4 reallocation sizing:** Q4 Google spend £93,520 at MMM CPA £18.75;
+  Tradedesk £17.48. Moving 20% (£18,704) buys 18,704 / 17.48 = 1,070 instead
+  of 18,704 / 18.75 = 998, so +72 registrations (+0.6% of Q4). Assumes average
+  CPA = marginal CPA, which the elasticity ≈ 1 supports for Tradedesk.
+- **Q4 rule-based step:** in the week of 7 Nov, rule-based registrations
+  *fall* for both vendors (Google −5%, Tradedesk −4%) while spend keeps its
+  trend and vendor UI *jumps* ~+19%. Rule-based CPA steps up ~8% overnight on
+  both vendors at once. A simultaneous one-week step on two independent
+  vendors points to a change in what is being measured, not in performance.
 
 ### Likely challenges and how to answer them
 
@@ -292,6 +307,43 @@ this one could break."
 > that would have happened anyway. That keeps acquisition cost down, which is
 > part of how Wise keeps fees low. Fixing tracking also improves what the
 > bidding algorithms learn, so ads reach people who actually need Wise."
+
+**"So which number do you report to executives, and why?"**
+> "For *how many* registrations we got: the database. It's the real count,
+> and the MMM total should never replace it. For *how much of that marketing
+> drove*: the MMM, scaled so baseline plus channel contributions add up to the
+> database total, with the range shown. For efficiency: incremental cost per
+> registration from the MMM. Platform numbers never go in an exec report.
+> One total, one decomposition, one efficiency metric."
+
+**"But a multiplicative MMM can inflate totals, can't it?"**
+> "The fitted total is anchored to actuals, so it shouldn't drift much. The
+> risk is in the decomposition. In a multiplicative model the channel effects
+> interact, so if you compute each channel as 'switch it off and see what's
+> lost' and then add those up, the sum can exceed the real incremental total.
+> I'd handle it three ways: reconcile contributions to the database total
+> (proportional or Shapley allocation), check that baseline plus contributions
+> equals actuals each period, and validate the display contribution with a geo
+> test. If the MMM's contributions add up to more than what the database
+> recorded, that's a model problem to fix, not a number to report."
+
+**"Why does rule-based CPA jump in November?"**
+> "Rule-based registrations drop the same week on both vendors while spend
+> follows its trend. Two independent vendors changing on the same day is a
+> measurement change, not performance. Most likely another channel started
+> touching users first in Q4, Black Friday or seasonal campaigns, so
+> first-touch handed the credit elsewhere. A tracking or consent change is the
+> other candidate. I'd check the channel mix of first touches over time, the
+> marketing calendar, tag and consent-rate logs, and whether total database
+> registrations rose while display's first-touch share fell."
+
+**"Why is k built against vendor UI and not rule-based?"**
+> "Because k exists to translate a business target into the number the team
+> actually steers with. Bids, target CPAs and daily optimisation all live in
+> the platform, and the algorithm only sees the platform's conversions.
+> Rule-based lives in our warehouse, isn't fed to the bidders, sees only 47% of
+> Tradedesk and broke silently in May. You could compute a rule-based k for
+> internal reporting, but nobody would make a decision with it."
 
 **"What would you do differently?"**
 > "Ask for the MMM's confidence intervals and model spec on day one. Every
